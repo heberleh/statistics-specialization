@@ -147,7 +147,7 @@ between the different bins. You can easily define the binwidth you want to use:
 
 ```{r hist-dep-delay-bins}
 ggplot(data = nycflights, aes(x = dep_delay)) +
-  geom_histogram(binwidth = 15)
+  geom_histogram(binwidth = 27)
 ggplot(data = nycflights, aes(x = dep_delay)) +
   geom_histogram(binwidth = 150)
 ```
@@ -233,7 +233,7 @@ flights headed to SFO **or** in February we can use the `|` instead of the comma
 1. Create a new data frame that includes flights headed to SFO in February, and save 
 this data frame as `sfo_feb_flights`. How many flights meet these criteria? 
 <ol>
-<li> 68 </li> 
+<li>[x] 68 </li> 
 <li> 1345 </li> 
 <li> 2286 </li> 
 <li> 3563 </li>
@@ -242,7 +242,8 @@ this data frame as `sfo_feb_flights`. How many flights meet these criteria?
 
 ```{r sfo-feb-flights}
 # type your code for Question 1 here, and Knit
-
+sfo_feb_flights <- nycflights %>% filter(dest=="SFO", month==2)
+sfo_feb_flights %>% count()
 ```
 
 
@@ -250,14 +251,21 @@ this data frame as `sfo_feb_flights`. How many flights meet these criteria?
 delays of `sfo_feb_flights`. Which of the following is false? 
 <ol>
 <li> The distribution is unimodal. </li> 
-<li> The distribution is right skewed. </li> 
-<li> No flight is delayed more than 2 hours. </li> 
-<li> The distribution has several extreme values on the right side. </li>
+<li> [x] The distribution is right skewed. </li> 
+<li> [x] No flight is delayed more than 2 hours. </li> 
+<li> [x] The distribution has several extreme values on the right side. </li>
 <li> More than 50% of flights arrive on time or earlier than scheduled. </li>
 </ol>
 
 ```{r sfo-feb-flights-arrival-delays}
 # type your code for Question 2 here, and Knit
+ggplot(data = sfo_feb_flights, aes(x= arr_delay)) + geom_histogram(binwidth =10) 
+
+sfo_feb_flights %>% summarise(mean=mean(arr_delay), median=median(arr_delay), IQR=IQR(arr_delay), n=n())
+
+sfo_feb_flights %>% filter(arr_delay<0) %>% count()
+sfo_feb_flights %>% count()
+sfo_feb_flights %>% filter(arr_delay<0) %>% count() / sfo_feb_flights %>% count()
 
 ```
 
@@ -279,7 +287,7 @@ statistics.
 `sfo_feb_flights` data frame, grouped by carrier. Which carrier has the hights 
 IQR of arrival delays? 
 <ol>
-<li> American Airlines </li> 
+<li> American Airlines - it is not AA.....  </li> 
 <li> JetBlue Airways </li> 
 <li> Virgin America </li> 
 <li> Delta and United Airlines </li>
@@ -288,6 +296,14 @@ IQR of arrival delays?
 
 ```{r sfo-feb-flights-arrival-delays-carrier}
 # type your code for Question 3 here, and Knit
+sfo_feb_flights %>% 
+  group_by(carrier) %>%
+  summarise(median=median(arr_delay), IQR=IQR(arr_delay), n=n())
+
+sfo_feb_flights %>% 
+  filter(carrier=='AA') %>%
+  ggplot(aes(y=arr_delay)) + geom_boxplot()
+  
 
 ```
 
