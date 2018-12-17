@@ -331,7 +331,7 @@ nycflights %>%
 <ol>
 <li> January </li> 
 <li> March </li> 
-<li> July </li> 
+<li> [x] July </li> 
 <li> October </li>
 <li> December </li>
 </ol>
@@ -348,12 +348,15 @@ nycflights %>%
 <li> March </li> 
 <li> July </li> 
 <li> October </li>
-<li> December </li>
+<li> [x] December </li>
 </ol>
 
 ```{r highest-median-dep-delay-month}
 # type your code for Question 5 here, and Knit
-
+nycflights %>%
+  group_by(month) %>%
+  summarise(median_dd = median(dep_delay)) %>%
+  arrange(desc(median_dd))
 ```
 
 
@@ -362,7 +365,7 @@ avoid flying if you really dislike delayed flights, and why?
 <ol>
 <li> Mean would be more reliable as it gives us the true average. </li> 
 <li> Mean would be more reliable as the distribution of delays is symmetric. </li> 
-<li> Median would be more reliable as the distribution of delays is skewed. </li> 
+<li> [x] Median would be more reliable as the distribution of delays is skewed. </li> 
 <li> Median would be more reliable as the distribution of delays is symmetric. </li>
 <li> Both give us useful information. </li>
 </ol>
@@ -432,11 +435,15 @@ which NYC airport would you choose to fly out of?
 <ol>
 <li> EWR </li> 
 <li> JFK </li> 
-<li> LGA </li> 
+<li> [x] LGA </li> 
 </ol>
 
 ```{r on-time-dep-perc-airport}
 # type your code for Question 7 here, and Knit
+nycflights %>%
+  group_by(origin) %>%
+  summarise(ot_dep_rate = sum(dep_type == "on time") / n()) %>%
+  arrange(desc(ot_dep_rate))
 
 ```
 
@@ -457,7 +464,7 @@ can be calculated as distance divided by number of hours of travel, and note tha
 pipe to select just these two variables with `select(avg_speed, tailnum)`. You can 
 Google this tail number to find out more about the aircraft. 
 <ol>
-<li> N666DN </li> 
+<li> [x] N666DN </li> 
 <li> N755US </li> 
 <li> N779JB </li> 
 <li> N947UW </li> 
@@ -466,6 +473,14 @@ Google this tail number to find out more about the aircraft.
 
 ```{r fastest-avg-speed-tailnum}
 # type your code for Question 8 here, and Knit
+names(nycflights)
+
+nycflights <- nycflights %>% 
+  mutate(avg_speed = distance/air_time) 
+
+nycflights %>%
+  arrange(desc(avg_speed)) %>%
+  select(avg_speed, tailnum)
 
 ```
 
@@ -475,14 +490,16 @@ about the relationship between average speed and distance.
 <ol>
 <li> As distance increases the average speed of flights decreases. </li> 
 <li> The relationship is linear. </li> 
-<li> There is an overall postive association between distance and average speed.</li> 
+<li> [x] There is an overall postive association between distance and average speed.</li> 
 <li> There are no outliers. </li> 
 <li> The distribution of distances are uniform over 0 to 5000 miles. </li> 
 </ol>
 
 ```{r avg-speed-dist-scatter}
 # type your code for Question 9 here, and Knit
-
+ggplot(data=nycflights, aes(x=distance, y=avg_speed)) + geom_point()
+ggplot(nycflights, aes( y = avg_speed)) +
+  geom_boxplot()
 ```
 
 
@@ -496,5 +513,25 @@ were `"delayed"` departing arrive `"on time"`?
 
 ```{r on-time-arr-perc}
 # type your code for Question 10 here, and Knit
+nycflights <- nycflights %>%
+  mutate(arr_type=ifelse(arr_delay <=0, "on time", "delayed"))
+
+nycflights %>%
+  summarize(
+    percentage_delayed = sum(arr_type=="delayed")/n(),
+    percentage_ontime = sum(arr_type=="on time")/n(), 
+    delayed_ontime = sum(dep_type=="delayed" & arr_type=="on time")/sum(dep_type=="delayed")
+    )
+
+k<-nycflights %>%
+  filter(dep_type=="delayed", arr_type=="on time") %>% 
+  count()
+
+n<-nycflights %>%
+  filter(dep_type=="delayed") %>% 
+  count()
+
+k/n
+
 
 ```
