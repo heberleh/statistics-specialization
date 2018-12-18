@@ -1,0 +1,128 @@
+---
+title: "Exploring the BRFSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+```
+
+### Load data
+
+```{r load-data}
+load("brfss2013.RData")
+```
+
+* * *
+
+
+
+## Part 1: Data
+<!-- 2 pt for correct reasoning for generabizability – Answer should discuss whether random sampling was used. Learners might discuss any reservations, those should be well justified. -->
+
+<!-- 1 pt for correct reasoning for causality – Answer should discuss whether random assignment was used. -->
+
+The survey is cross-sectional and is conducted monthly over landline telephones and cellular telephones with a standardized questionnaire and technical and methodologic assistance. By the landline telephone, data is collected from **randomly** selected adults in household. They also included the cellular telephone survey of adults residing in a private residence or college housing.
+
+Considering the surveys that take all states from USA, the data allows us to create **observational analysis** about one moment and about the general trends about USA. This is the main difference between a longitudinal study and a cross-sectional: in the longitudinal, the same primarly selected adults would be surveied along the time (cycles), while in (this) cross-sectional study, random adults are selected in each cycle. Thus, the studies we may conduct with this data can provide **generalizable** but **not causal** conclusions. Despite **random assignment was not used**, we may create **future** studies based on our conclusions from observational study to apply random assigment and have causal conclusions.
+
+For analysis of data over-time, e.g., to find trends, the analyst must use the variable LLCPWT for weighting. For instance, we could see the states, cities and types of survey (landline telephone versus cellular telephone) as entities of hierarchy, thus our analysis over time could use Hierarchichal Linear/Logistic Regression, for instance, some was ~1% surveid while others ~2%. Also, we see that the proportion (%) of surveys in each state varies. Since we did not learn how to use the provided Weights, *this type of analysis is not scope** of this Course 01.
+
+Despite the filename has the number 2013 in its name, it is important to check if the data set is actually considering only 2013 observations:
+```{r year-distribution}
+brfss2013 %>%
+  group_by(iyear) %>%
+  summarize(count=n())
+```
+
+Now we may check if the samples are well distributed over months:
+```{r month-obs-distribution}
+brfss2013 %>%
+  filter(iyear==2013) %>%
+  group_by(imonth) %>%
+  summarize(count=n())
+```
+The data set comprises mostly 2013 surveys, having ~ 4 thousand observations for most of the months, except january. Peharps we could sample randomly 25000 observations from each month to balance the month-comparison - if we are considering a time-series analysis.
+
+For 2014, only 5682 were considered, thus we may remove this samples too. Our current data set is then set up to balance the months and consider only 2013 samples:
+```{r dataset-filter-2013-balance-months}
+dataset <- brfss2013 %>%
+  filter(iyear==2013) %>%
+  group_by(imonth) %>%
+  sample_n(25000)
+```
+
+
+
+
+
+* * *
+
+## Part 2: Research questions
+
+<!-- 3 pts for each research question (x 3) -->
+<!--   Should be phrased in a non-causal way (1 pt) -->
+<!--   Should be well defined / not vague (1 pt) -->
+<!--   Is clear why this is of interest to the author / audience (1 pt) -->
+<!-- 2 pts for at least two of the questions involving three variables -->
+
+**Research quesion 1:**
+
+**Research quesion 2:**
+
+**Research quesion 3:**
+
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+<!-- 10 pts for each for each research question (x 3) -->
+<!-- 3 pts for plots -->
+<!--     Plots should address the research questions (1 pt) -->
+<!--     Plots should be constructed correctly (1 pt) -->
+<!--     Plots should be formatted well – size not too large, not too small, etc. (1 pt) -->
+<!-- 3 pts for summary statistics -->
+<!--     Summary statistics should address the research questions (1 pt) -->
+<!--     Summary statistics should be calculated correctly (1 pt) -->
+<!--     Summary statistics should be formatted well – not taking up pages and pages, etc. (1 pt) -->
+<!-- 4 pts for narrative -->
+<!--     Each plot and/or R output should be accompanied by a narrative (1 pt) -->
+<!--     Narrative should interpret the visuals / R output correctly (2 pts) -->
+<!--     Narrative should address the research question (1 pts) -->
+
+NOTE: Insert code chunks as needed by clicking on the "Insert a new code chunk" 
+button (green button with orange arrow) above. Make sure that your code is visible
+in the project you submit. Delete this note when before you submit your work.
+
+**Research quesion 1:**
+
+```{r}
+
+```
+
+
+
+**Research quesion 2:**
+
+```{r}
+
+```
+
+
+
+**Research quesion 3:**
+
+```{r}
+
+```
+

@@ -274,7 +274,7 @@ $(document).ready(function () {
 <span class="st">  </span><span class="kw">str</span>()</code></pre></div>
 <p>If we try to run that line, we will get an error message about unexpected input or missing object.</p>
 <p>We next need to diagnose where the problem lies – in the R code or in the data? The best way to troubleshoot this issue is to run each line of the <code>dplyr</code> chain one by one.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">selected_nzes2011 </code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">selected_nzes2011</code></pre></div>
 <p>The first line runs without any erros, but the second line gives an error</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">selected_nzes2011 <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">  </span><span class="kw">select</span>(jpartyvote, jdiffvoting, _singlefav)</code></pre></div>
