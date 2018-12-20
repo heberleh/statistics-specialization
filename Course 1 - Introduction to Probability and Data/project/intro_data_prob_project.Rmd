@@ -35,7 +35,7 @@ The survey is cross-sectional and is conducted monthly over landline telephones 
 
 Considering the surveys that take all states from USA, the data allows us to create **observational analysis** about one moment and about the general trends about USA. This is the main difference between a longitudinal study and a cross-sectional: in the longitudinal, the same primarly selected adults would be surveied along the time (cycles), while in (this) cross-sectional study, random adults are selected in each cycle. Thus, the studies we may conduct with this data can provide **generalizable** but **not causal** conclusions. Despite **random assignment was not used**, we may create **future** studies based on our conclusions from observational study to apply random assigment and have causal conclusions.
 
-For analysis of data over-time, e.g., to find trends, the analyst must use the variable LLCPWT for weighting. For instance, we could see the states, cities and types of survey (landline telephone versus cellular telephone) as entities of hierarchy, thus our analysis over time could use Hierarchichal Linear/Logistic Regression, for instance, some was ~1% surveid while others ~2%. Also, we see that the proportion (%) of surveys in each state varies. Since we did not learn how to use the provided Weights, *this type of analysis is not scope** of this Course 01.
+For analysis of data over-time, e.g., to find trends, the analyst must use the variable LLCPWT for weighting. For instance, we could see the states, cities and types of survey (landline telephone versus cellular telephone) as entities of hierarchy, thus our analysis over time could use Hierarchichal Linear/Logistic Regression, for instance, some was ~1% surveid while others ~2%. Also, we see that the proportion (%) of surveys in each state varies. Since we did not learn how to use the provided Weights, **this type of analysis is not scope** of this Course 01.
 
 Despite the filename has the number 2013 in its name, it is important to check if the data set is actually considering only 2013 observations:
 ```{r year-distribution}
@@ -44,24 +44,14 @@ brfss2013 %>%
   summarize(count=n())
 ```
 
-Now we may check if the samples are well distributed over months:
-```{r month-obs-distribution}
-brfss2013 %>%
-  filter(iyear==2013) %>%
-  group_by(imonth) %>%
-  summarize(count=n())
-```
-The data set comprises mostly 2013 surveys, having ~ 4 thousand observations for most of the months, except january. Peharps we could sample randomly 25000 observations from each month to balance the month-comparison - if we are considering a time-series analysis.
+For 2014 only 5682 were surveyed, thus we may remove this observations and consider only 2013 samples. Doing so, we can say that our conclusions are based on surveys from 2013 speciffically:
 
-For 2014, only 5682 were considered, thus we may remove this samples too. Our current data set is then set up to balance the months and consider only 2013 samples:
 ```{r dataset-filter-2013-balance-months}
 dataset <- brfss2013 %>%
-  filter(iyear==2013) %>%
-  group_by(imonth) %>%
-  sample_n(25000)
+  filter(iyear==2013)
 ```
 
-
+NOTE: Since the *weights* are not scope of this course, we will ignore the unbalanced distributions over months and states.
 
 
 
@@ -75,11 +65,49 @@ dataset <- brfss2013 %>%
 <!--   Is clear why this is of interest to the author / audience (1 pt) -->
 <!-- 2 pts for at least two of the questions involving three variables -->
 
-**Research quesion 1:**
+The following research questions are set for the filtered dataset defined in the last section.
 
-**Research quesion 2:**
+### Research quesion 1:
 
-**Research quesion 3:**
+Mental health problems of graduate students are recently receiving great attention from researchers. Many institutions started programs to guide students and try to reduce the number of students with mental illness, given the increase rate of cases of depression and suicide. On the other hand, it is not clear if this effect is occurring in a higher frequency on people with higher education than on people with lower education levels.
+        
+    Considering men, women and both sexes that have at least one case of mental health problem in the last 30 days, are the mental health problems more frequent the higher is education level?
+
+For this question, we want to check the relationships between variables:
+
+* **sex**: "Respondents Sex" - categorical values (Male and Female)
+* **menthlth**: "Number of Days Mental Health Not Good" -  discreet values (1 to 30)
+* **educa**: "Education Level" - categorical/ordinal values (1 to 6)
+  
+
+### Research quesion 2:
+
+Considering the motivation stated in Question 1, we now look for relationship between people with higher education levels that are still students and the ones that are not. The research question is:
+
+    Considering people that have at least one case of mental health problem in the last 30 days, are the mental health problems more frequent in people with higher education levels that are currently students in comparison with the ones that are not?
+
+For this question, the following variables are considered:
+
+* **menthlth**: "Number of Days Mental Health Not Good" -  discreet values (1 to 30)
+* **educa**: "Education Level" - categorical/ordinal values (1 to 6)
+* **employ1**: Employment Status - categorical (among the values is "A student")
+
+
+### Research quesion 3:
+
+Longitudinal studies performed for many years have concluded that the feeling of belonging within a group of people and having good relationships are strongly correlated to have a longer and good life. Such relationships include friendship, family, marriage and others wiht long and healthy interactions.
+
+Since the dataset studied here is not longitudinal, we cannot analyze if, for instance, the life insatisfaction is linked to occurence of cancers. This dataset, on the other hand, can tell us if there is a difference in life satisfaction between people that have or had cancer and people that never was told to have cancer. Another attribute that may be linked to life satisfaction is the quality of sleeping. Thus, we will consider the total time of sleeping as an attribute to analyze too, together with the variable that tracks if a person had any type of cancer other than Skin Cancer.
+
+The research question is:
+
+    Does people that was told to have cancer at some point are less satisfied than people that was never told to have cancer? Is there a link with time of sleeping?
+
+We will analyze the interaction between these variables:
+
+* **sleptim1**: How Much Time Do You Sleep
+* **chcocncr**: (Ever Told) You Had Any Other Types Of Cancer? - categorical velues (Yes, No)
+* **lsatisfy**: Satisfaction With Life - categoriacal values (Very satisfied, Satisfied, Disatisfied, Very dissatisfied)
 
 
 * * *
@@ -104,25 +132,215 @@ NOTE: Insert code chunks as needed by clicking on the "Insert a new code chunk"
 button (green button with orange arrow) above. Make sure that your code is visible
 in the project you submit. Delete this note when before you submit your work.
 
-**Research quesion 1:**
+### Research quesion 1:
 
-```{r}
+    Considering men, women and both sexes that have at least one case of mental health problem in the last 30 days, are the mental health problems more frequent the higher is education level?
+
+For this question, we want to check the relationships between variables: **sex**,  **menthlth** and **educa**.
+  
+First we will analyze the overall relation between mental health and education level considering both men and women, removing the cases with no problem. For this, we will create boxplots of *menthlth* for each *educa* value:
+```{r mentalhealth-all-boxplot}
+dataset %>% 
+  filter(!is.na(educa) & !is.na(menthlth) & menthlth > 0) %>%
+  ggplot(aes(x = factor(educa), y = menthlth)) +
+  geom_boxplot() + coord_flip()
+
+```
+
+From the plot we can see that the hyphotesis of college/graduate students having  more mental health problems than people with lower education level does not apply for USA. For instance, the median of the category "College graduate" is 4 while for "Elementary" is 14.
+
+The median increases the lower is the education level, and so does the IQR. With exception for the "Never attended school" class, which had a descrease in the median. This could be justified by the much lower number of observations in this class (211) in comparison with the others (+4,000). 
+
+```{r mentalhealth-summary}
+dataset %>% 
+  filter(!is.na(educa) & !is.na(menthlth) & menthlth > 0) %>%
+  group_by(educa) %>%
+  summarize(median=median(menthlth), IQR=IQR(menthlth), count=n())
+```
+
+There is **no evidence** that Male or Female implies in different conclusions for the correlation of Education Level and Mental Health. That is, the conclusion remains the same: The lower is the education level, the higher is the frequency of mental health problems among the ones who have mental health problems.
+
+```{r mentalhealth-summary-by-sex}
+medians <- dataset %>% 
+  filter(!is.na(educa) & !is.na(menthlth) & menthlth > 0) %>%
+  group_by(educa, sex) %>%
+  summarize(median=median(menthlth), IQR=IQR(menthlth), count=n())
+
+male_medians <- dataset %>% 
+  filter(!is.na(educa) & !is.na(menthlth) & menthlth > 0 & sex=="Male") %>%
+  group_by(educa) %>%
+  summarize(median_m=median(menthlth))
+female_medians <- dataset %>% 
+  filter(!is.na(educa) & !is.na(menthlth) & menthlth > 0 & sex=="Female") %>%
+  group_by(educa) %>%
+  summarize(median_f=median(menthlth))
+
+m <- cbind(female_medians, male_medians$median_m)
+colnames(m) <- c("educa", "median_f", "median_m")
+
+ggplot(m, aes(x=median_f, y=median_m)) + geom_point()
+
 
 ```
 
+The IQR values for Male and Female are similar too:
+```{r mentalhealth-summary-sex}
+dataset %>% 
+  filter(!is.na(educa) & !is.na(menthlth) & menthlth > 0) %>%
+  group_by(educa, sex) %>%
+  summarize(median=median(menthlth), IQR=IQR(menthlth), count=n())
+```
+
+In conclusion, the answer for the question:
+
+    Considering men, women and both sexes that have at least one case of mental health problem in the last 30 days, are the mental health problems more frequent the higher is education level?
+    
+is:
+
+    No, there is no evidence of such relation. In fact, the found evidences say that the higher is the education level the mental health problems are less frequent. No differentiation between sex was found. Note: in the USA, in 2013.
+    
+In the next question, we compare the groups of higher level education that are not students and the group of people that are currently students. The ideia is to identify relation between the variables that may happen only while the people with higher education levels are under the condition of being a student.
 
 
-**Research quesion 2:**
 
-```{r}
+
+### Research quesion 2:
+
+    Considering people that have at least one case of mental health problem in the last 30 days, are the mental health problems more frequent in people with higher education levels that are currently students in comparison with the ones that are not?
+    
+For this question we are interested in find relations between **menthlth**, **educa** and **employ1**.
+
+First, we create a variable that indicates if a person is a student or not and a variable that indicates if a person has "College 4 years or more (College graduate)" or "College 1 year to 3 years (Some college or technical school)" levels. Then we filter to ignore NAs, people without mental health problems (0) and people that are not in the two mentioned education levels:
+```{r is-student}
+
+students_d <- dataset %>%
+  mutate(
+         studying=ifelse(employ1=="A student", "A student", "Not a student"),
+         
+         higher_level=ifelse(
+           educa == "College 4 years or more (College graduate)" | 
+           educa == "College 1 year to 3 years (Some college or technical school)",
+           TRUE, FALSE)
+        )%>%
+  filter(!is.na(studying) & !is.na(higher_level) & !is.na(menthlth) 
+         & menthlth > 0 & higher_level == TRUE)
+
+students_d %>%
+  group_by(studying) %>%
+  summarize(n(), median=median(menthlth))
+```
+
+Then we plot the distribution of mental health frequency per month:
+```{r student-mental-health-plot}
+
+ggplot(students_d, aes(x=factor(studying), y=menthlth)) + geom_boxplot()
 
 ```
 
+The median of these two conditions are equal, and only IQR differentiates:
+```{r student-mental-health-summary}
+students_d %>%
+  group_by(studying) %>%
+  summarize(median=median(menthlth), IQR(menthlth))
+```
 
+Getting back to the question,
 
-**Research quesion 3:**
+    Considering people that have at least one case of mental health problem in the last 30 days, are the mental health problems more frequent in people with higher education levels that are currently students in comparison with the ones that are not?
 
-```{r}
+we end with a conclusion that 
+    
+    we did not find any evidence saying that current students in higher education levels would be linked to more frequent mental health problemns than the ones that are not currently studying - in the USA, in 2013.
+
+Additionally, comparying all people that are students against the ones that are not, we see that the same patter occurs. Now, the difference between the two conditions (student vs. non-student) is bigger, indicating that they have equal median and that there are more cases of higher mental health problem frequency in the group of non-students:
+
+```{r student-mental-health-plot-all}
+students_d <- dataset %>%
+  mutate(studying=ifelse(employ1=="A student", "A student", "Not a student"))
+
+all_levels <- students_d %>%
+  filter(!is.na(studying) & !is.na(menthlth) & menthlth > 0)
+
+ggplot(all_levels, aes(x=factor(studying), y=menthlth)) + geom_boxplot()
 
 ```
+
+We end the analysis of relations between education levels and mental health here, answering negativelly both research questions 1 and 2 and finding the opposite relation: the lower is the education level the greater is the frequency of mental health problems during a month. Also, we found evidences that say that considering that both students and non-students have the same median in mental health problems frequency, the groups of non-students seems to have more occurances of mental health problems - having a bigger IQR. In the next secion we explore a different context.
+
+### Research quesion 3:
+
+To answer the following question:
+
+    Does people that was told to have cancer at some point are less satisfied than people that was never told to have cancer? Is there a link with time of sleeping?
+
+we will analyze the interaction between the variables **sleptim1**, **chcocncr** and  **lsatisfy**.
+
+First we will remove a possible mistyping that appeared in the *sleptim1* variable, a value of 103 hours, and filter for any NAs values for those attributes. Then, we will simplify the attribute *lsatisfy* to contain only two values Yes or No for the information "Satisfied", which will indicates that the person is satisfied or very satisfied; or not.
+```{r}
+satis_data <- dataset %>%
+  filter(sleptim1 < 24 & !is.na(sleptim1) & !is.na(lsatisfy) & !is.na(chcocncr))
+
+satis_data <- satis_data %>%
+  mutate(satisfied = ifelse(lsatisfy=="Very satisfied" 
+                        | lsatisfy=="Satisfied", 
+                                                "Yes", "No"))
+```
+
+The percentages of people insatisfied and satisfied in both groups (had or not informed about having cancer) are very similar, what indicates that **there is no evidence** of having a cancer or not at some point in life be linked to life satisfaction.
+```{r}
+satis_data %>%
+  group_by(chcocncr) %>%
+  summarize(count=n(), 
+            sat=sum(satisfied=="Yes")/n(), 
+            insat=sum(satisfied=="No")/n())
+```
+
+Now we analyze the relations of sleeping time and life satisfaction by creating box plots and histograms of the sleeping time per satisfaction group:
+
+```{r}
+ggplot(satis_data, aes(x=factor(satisfied), y=sleptim1)) + geom_boxplot()
+
+satis_data %>%
+  filter(satisfied=="Yes")%>%
+  ggplot(aes(x=sleptim1)) + geom_histogram(binwidth = 2)
+
+satis_data %>%
+  filter(satisfied=="No")%>%
+  ggplot(aes(x=sleptim1)) + geom_histogram(binwidth = 2)
+```
+
+As we can see, the more satisfied people usually sleep more (greater median/mean), and the time os sleeping vary less (smaller IQR). This suggests that people more satified also have a more consistent time of sleeping. The exact values are confirmed in the following summary table, which is around 7 hours for satisfied and around 6 for insatisfied. Median and mean are similar in both cases.
+```{r}
+satis_data %>%
+  group_by(satisfied) %>%
+  summarize(mean=mean(sleptim1), median=median(sleptim1), IQR=IQR(sleptim1))
+```
+
+
+People that are satisfied usually sleep more. In this plot we can see that people are more concentrated on the right side of the median/mean, indicating a sleeping time of 7 to 8 hours:
+```{r}
+satis_data %>%
+  filter(satisfied=="Yes")%>%
+  ggplot(aes(x=sleptim1)) + geom_histogram(binwidth = 2)
+
+```
+
+The opposite pattern is found in the insatisfied plot, where we can see that people are more concentrated on the left side of the median/mean, indicating in most cases a sleeping time of 6h, 5h, down to 3h of sleep.
+```{r}
+satis_data %>%
+  filter(satisfied=="No")%>%
+  ggplot(aes(x=sleptim1)) + geom_histogram(binwidth = 2)
+
+```
+
+Getting back to the research question:
+
+    Does people that was told to have cancer at some point are less satisfied than people that was never told to have cancer? Is there a link with time of sleeping?
+    
+We conclude that:
+
+    There is no evidence of link between life satisfaction and having a cancer at some point in life or not. On the other hand, we found a link between sleeping time, indicating that the people that are more satisfied are mostly sleeping more, around the 7-8 hours, which is the usual recommendation.
+    
+Still, we cannot say that sleeping time may cause life satisfaction.There are many attributes that could be causing the life insatisfaction or the shor sleeping time. For instance, if a person have mental health problem such as insomnia, the person could be insatisfied with life because he/she feels tired during the day. This could also be some effect of depression, so the cause would be two attributes: feeling tired caused by bad sleeping and feeling sad caused by depression. Many others hyphoteses could be created giving the current results, and new observational and experimental studies could be created.
+
 
