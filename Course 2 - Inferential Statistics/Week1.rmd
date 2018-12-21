@@ -1,7 +1,6 @@
 ---
 title: "Foundations for inference - Sampling distributions"
 output: statsr:::statswithr_lab
-runtime: shiny
 ---
 
 <div id="instructions">
@@ -358,7 +357,9 @@ shinyApp(
 </div>
 ```{r price-sample}
 # type your code for this Exercise here, and Run Document
-
+ames %>% 
+  sample_n(50) %>%
+  summarize(mean_price=mean(price))
 ```
 
 <div id="exercise">
@@ -366,7 +367,16 @@ shinyApp(
 </div>
 ```{r price-sampling}
 # type your code for this Exercise here, and Run Document
+sample_means50 <- ames %>%
+  rep_sample_n(size = 50, reps = 5000, replace = TRUE) %>%
+  summarize(x_bar=mean(price))
 
+sample_means50 %>% summarize(mean_xbar=mean(x_bar), median_xbar=median(x_bar), sigma=sd(x_bar), q1=quantile(x_bar, 0.25), q3=quantile(x_bar,0.75), ic0=quantile(x_bar,0.025),ic1=quantile(x_bar,0.975))
+
+ggplot(data = sample_means50, aes(x = x_bar)) +
+  geom_histogram(binwidth = 1500)
+
+  
 ```
 
 <div id="exercise">
@@ -374,6 +384,15 @@ shinyApp(
 </div>
 ```{r price-sampling-more}
 # type your code for this Exercise here, and Run Document
+sample_means150 <- ames %>%
+  rep_sample_n(size = 150, reps = 5000, replace = TRUE) %>%
+  summarize(x_bar=mean(price))
+
+sample_means150 %>% summarize(mean_xbar=mean(x_bar), median_xbar=median(x_bar), sigma=sd(x_bar), q1=quantile(x_bar, 0.25), q3=quantile(x_bar,0.75), ic0=quantile(x_bar,0.025),ic1=quantile(x_bar,0.975))
+
+
+ggplot(data = sample_means150, aes(x = x_bar)) +
+  geom_histogram(binwidth = 1500)
 
 ```
 
@@ -391,7 +410,7 @@ summary statistics. You are welcomed to use the app for exploration.
 </div>
 ```{r price-sample-small}
 # type your code for this Exercise here, and Run Document
-
+sample_means15 <- sample_n(ames, size = 15, replace = TRUE )
 ```
 
 <div id="exercise">
@@ -399,7 +418,12 @@ summary statistics. You are welcomed to use the app for exploration.
 </div>
 ```{r price-sampling-small}
 # type your code for this Exercise here, and Run Document
+sample_means15 <- rep_sample_n(ames,size=15, replace=TRUE, reps=2000) %>%
+                  summarize(x_bar=mean(price))
 
+ggplot(sample_means15, aes(x=x_bar)) + geom_histogram(binwidth = 6000)
+
+sample_means15 %>% summarize(mean_xbar=mean(x_bar), median_xbar=median(x_bar), sigma=sd(x_bar), q1=quantile(x_bar, 0.25), q3=quantile(x_bar,0.75), ic0=quantile(x_bar,0.025),ic1=quantile(x_bar,0.975))
 ```
 
 <div id="exercise">
@@ -407,17 +431,31 @@ summary statistics. You are welcomed to use the app for exploration.
 </div>
 ```{r price-sampling-big}
 # type your code for this Exercise here, and Run Document
+sample_means150 <- rep_sample_n(ames, size=150, replace=TRUE, reps=2000) %>%
+                  summarize(x_bar=mean(price))
 
+ggplot(sample_means150, aes(x=x_bar)) + geom_histogram(binwidth = 6000)
+
+sample_means150 %>% summarize(mean_xbar=mean(x_bar), median_xbar=median(x_bar), sigma=sd(x_bar), q1=quantile(x_bar, 0.25), q3=quantile(x_bar,0.75), ic0=quantile(x_bar,0.025),ic1=quantile(x_bar,0.975))
 ```
 
 6. Which of the following is false? 
 <ol>
-<li> The variability of the sampling distribution with the smaller sample size (`sample_means50`) is smaller than the variability of the sampling distribution with the larger sample size (`sample_means150`). </li>
+<li> [x] The variability of the sampling distribution with the smaller sample size (`sample_means50`) is smaller than the variability of the sampling distribution with the larger sample size (`sample_means150`). </li>
 <li> The means for the two sampling distribtuions are roughly similar. </li> 
 <li> Both sampling distributions are symmetric. </li>
 </ol>
 ```{r price-sampling-compare}
 # type your code for Question 6 here, and Run Document
+
+sample_means50 <- rep_sample_n(ames, size=50, replace=TRUE, reps=2000) %>%
+                  summarize(x_bar=mean(price))
+sample_means50 %>% summarize(igma=sd(x_bar))
+
+
+sample_means150 <- rep_sample_n(ames, size=150, replace=TRUE, reps=2000) %>%
+                  summarize(x_bar=mean(price))
+sample_means150 %>% summarize(igma=sd(x_bar))
 
 ```
 
