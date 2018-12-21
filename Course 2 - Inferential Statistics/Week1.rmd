@@ -76,7 +76,7 @@ ames %>%
 1.  Which of the following is **false**?
 <ol>
 <li> The distribution of areas of houses in Ames is unimodal and right-skewed. </li>
-<li> 50\% of houses in Ames are smaller than 1,499.69 square feet. </li>
+<li> [x] 50\% of houses in Ames are smaller than 1,499.69 square feet. </li>
 <li> The middle 50\% of the houses range between approximately 1,126 square feet and 1,742.7 square feet. </li>
 <li> The IQR is approximately 616.7 square feet. </li>
 <li> The smallest house is 334 square feet and the largest is 5,642 square feet. </li>
@@ -109,7 +109,14 @@ home sales.
 </div>
 ```{r samp1-dist}
 # type your code for the Exercise here, and Run Document
+ggplot(data = samp1, aes(x = area)) + geom_histogram(binwidth = 250)
 
+samp1 %>%
+  summarise(sample_mean = mean(area), sample_med = median(area), 
+            sigma = sd(area), pop_iqr = IQR(area),
+            pop_min = min(area), pop_max = max(area),
+            pop_q1 = quantile(area, 0.25),  # first quartile, 25th percentile
+            pop_q3 = quantile(area, 0.75))  # third quartile, 75th percentile
 ```
 
 
@@ -131,11 +138,12 @@ population.
 <ol>
 <li> Sample size of 50. </li>
 <li> Sample size of 100. </li>
-<li> Sample size of 1000. </li>
+<li> [x] Sample size of 1000. </li>
 </ol>
 
 Let's take one more sample of size 50, and view the mean area in this sample:
 ```{r mean-samp2}
+
 ames %>%
   sample_n(size = 50) %>%
   summarise(x_bar = mean(area))
@@ -170,7 +178,12 @@ the mean of each sample, and store each result in a vector called
 </div>
 ```{r sampling-dist}
 # type your code for the Exercise here, and Run Document
-
+sample_means50 %>%
+  summarise(mean_mean = mean(x_bar), mean_med = median(x_bar), 
+            sigma = sd(x_bar), pop_iqr = IQR(x_bar),
+            pop_min = min(x_bar), pop_max = max(x_bar),
+            pop_q1 = quantile(x_bar, 0.25),  # first quartile, 25th percentile
+            pop_q3 = quantile(x_bar, 0.75))  # third quartile, 75th percentile
 ```
 
 ## Interlude: Sampling distributions
@@ -201,6 +214,10 @@ Note that for each of the 15,000 times we computed a mean, we did so from a
 </div>
 ```{r practice-sampling-dist}
 # type your code for the Exercise here, and Run Document
+sample_means_small <- ames %>%
+        rep_sample_n(size = 10, reps = 25, replace = TRUE) %>%
+        summarise(x_bar = mean(area))
+
 
 ```
 
@@ -208,18 +225,18 @@ Note that for each of the 15,000 times we computed a mean, we did so from a
 <ol>
 <li> 0 </li>
 <li> 3 </li>
-<li> 25 </li>
+<li> [x] 25 </li>
 <li> 100 </li>
 <li> 5,000 </li>
 </ol>
 ```{r sample-means-small}
 # type your code for Question 3 here, and Run Document
-
+count(sample_means_small)
 ```
 
 4. Which of the following is **true** about the elements in the sampling distributions you created?
 <ol>
-<li> Each element represents a mean square footage from a simple random sample of 10 houses. </li>
+<li> [x] Each element represents a mean square footage from a simple random sample of 10 houses. </li>
 <li> Each element represents the square footage of a house. </li>
 <li> Each element represents the true population mean of square footage of houses. </li>
 </ol>
@@ -331,7 +348,7 @@ shinyApp(
 
 5. It makes intuitive sense that as the sample size increases, the center of the sampling distribution becomes a more reliable estimate for the true population mean. Also as the sample size increases, the variability of the sampling distribution ________. 
 <ol>
-<li> decreases </li>
+<li> [x] decreases </li>
 <li> increases </li>
 <li> stays the same </li>
 </ol>
