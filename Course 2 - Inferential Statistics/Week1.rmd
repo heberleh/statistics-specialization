@@ -450,12 +450,12 @@ sample_means150 %>% summarize(mean_xbar=mean(x_bar), median_xbar=median(x_bar), 
 
 sample_means50 <- rep_sample_n(ames, size=50, replace=TRUE, reps=2000) %>%
                   summarize(x_bar=mean(price))
-sample_means50 %>% summarize(igma=sd(x_bar))
+sample_means50 %>% summarize(sigma50=sd(x_bar))
 
 
 sample_means150 <- rep_sample_n(ames, size=150, replace=TRUE, reps=2000) %>%
                   summarize(x_bar=mean(price))
-sample_means150 %>% summarize(igma=sd(x_bar))
+sample_means150 %>% summarize(sigma150=sd(x_bar))
 
 ```
 
