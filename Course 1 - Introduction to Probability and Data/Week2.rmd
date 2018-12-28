@@ -251,9 +251,9 @@ sfo_feb_flights %>% count()
 delays of `sfo_feb_flights`. Which of the following is false? 
 <ol>
 <li> The distribution is unimodal. </li> 
-<li> [x] The distribution is right skewed. </li> 
+<li> The distribution is right skewed. </li> 
 <li> [x] No flight is delayed more than 2 hours. </li> 
-<li> [x] The distribution has several extreme values on the right side. </li>
+<li> The distribution has several extreme values on the right side. </li>
 <li> More than 50% of flights arrive on time or earlier than scheduled. </li>
 </ol>
 
@@ -287,10 +287,10 @@ statistics.
 `sfo_feb_flights` data frame, grouped by carrier. Which carrier has the hights 
 IQR of arrival delays? 
 <ol>
-<li> American Airlines - it is not AA.....  </li> 
+<li> American Airlines </li> 
 <li> JetBlue Airways </li> 
 <li> Virgin America </li> 
-<li> Delta and United Airlines </li>
+<li> [x] Delta and United Airlines </li>
 <li> Frontier Airlines </li>
 </ol>
 
