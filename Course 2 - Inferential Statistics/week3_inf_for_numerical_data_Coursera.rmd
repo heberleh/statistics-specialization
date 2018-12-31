@@ -62,7 +62,7 @@ variable         | description
 <li> The hospitals where the births took place </li> 
 <li> The fathers of the children </li> 
 <li> The days of the births </li>
-<li> The births </li>
+<li> [x] The births </li>
 </ol>
 
 As a first step in the analysis, we should take a look at the variables in the dataset. 
@@ -92,7 +92,7 @@ summary(nc$gained)
 <ol>
 <li> 0 </li>
 <li> 13 </li>
-<li> 27 </li>
+<li> [x] 27 </li>
 <li> 31 </li>
 </ol>
 
@@ -106,11 +106,21 @@ false about the relationship between habit and weight?
 <ol>
 <li> Median birth weight of babies born to non-smoker mothers is slightly higher than that of babies born to smoker mothers. </li>
 <li> Range of birth weights of babies born to non-smoker mothers is greater than that of babies born to smoker mothers. </li>
-<li> Both distributions are extremely right skewed. </li>
+<li> [x] Both distributions are extremely right skewed. </li>
 <li> The IQRs of the distributions are roughly equal. </li>
 </ol>
 ```{r habit-weight-box}
 # type your code for the Question 3 here, and Knit
+nc %>%
+  ggplot(aes(x = factor(habit), y = weight)) +
+  geom_boxplot() + coord_flip()
+
+nc %>%
+  group_by(habit) %>%
+  summarize(IQR=IQR(weight))
+
+tapply(nc$weight, nc$habit, summary)
+
 
 ```
 
@@ -122,7 +132,7 @@ first group the data by the `habit` variable, and then calculate the mean
 ```{r by-means}
 nc %>%
   group_by(habit) %>%
-  summarise(mean_weight = mean(weight))
+  summarise(mean_weight = mean(weight), size=n())
 ```
 
 There is an observed difference, but is this difference statistically 
@@ -140,7 +150,7 @@ test.
 smoking and non-smoking mothers are different?
 <ol>
 <li> $H_0: \mu_{smoking} = \mu_{non-smoking}$; $H_A: \mu_{smoking} > \mu_{non-smoking}$ </li>
-<li> $H_0: \mu_{smoking} = \mu_{non-smoking}$; $H_A: \mu_{smoking} \ne \mu_{non-smoking}$ </li>
+<li> [x] $H_0: \mu_{smoking} = \mu_{non-smoking}$; $H_A: \mu_{smoking} \ne \mu_{non-smoking}$ </li>
 <li> $H_0: \bar{x}_{smoking} = \bar{x}_{non-smoking}$; $H_A: \bar{x}_{smoking} > \bar{x}_{non-smoking}$ </li>
 <li> $H_0: \bar{x}_{smoking} = \bar{x}_{non-smoking}$; $H_A: \bar{x}_{smoking} > \bar{x}_{non-smoking}$ </li>
 <li> $H_0: \mu_{smoking} \ne \mu_{non-smoking}$;  $H_A: \mu_{smoking} = \mu_{non-smoking}$ </li>
@@ -154,6 +164,8 @@ Then, run the following:
 ```{r inf-weight-habit-ht, tidy=FALSE}
 inference(y = weight, x = habit, data = nc, statistic = "mean", type = "ht", null = 0, 
           alternative = "twosided", method = "theoretical")
+
+
 ```
 
 Let's pause for a moment to go through the arguments of this custom function. 
@@ -187,10 +199,11 @@ between 0 and 1. Also note that when doing a confidence interval arguments like
 <li> We are 95% confident that babies born to nonsmoker mothers are on average 0.05 to 0.58 pounds lighter at birth than babies born to smoker mothers. </li>
 <li> We are 95% confident that the difference in average weights of babies whose moms are smokers and nonsmokers is between 0.05 to 0.58 pounds. </li>
 <li> We are 95% confident that the difference in average weights of babies in this sample whose moms are smokers and nonsmokers is between 0.05 to 0.58 pounds. </li>
-<li> We are 95% confident that babies born to nonsmoker mothers are on average 0.05 to 0.58 pounds heavier at birth than babies born to smoker mothers. </li>
+<li> [x] We are 95% confident that babies born to nonsmoker mothers are on average 0.05 to 0.58 pounds heavier at birth than babies born to smoker mothers. </li>
 </ol>
 ```{r habit-weight-ci}
 # type your code for the Question 5 here, and Knit
+inference(y = weight, x = habit, data = nc, statistic = "mean", type = "ci", method = "theoretical", conf_level = 0.95)
 
 ```
 
@@ -211,11 +224,11 @@ interval?
 <li>(38.1526 , 38.5168)</li>
 <li>(38.0892 , 38.5661)</li>
 <li>(6.9779 , 7.2241)</li>
-<li>(38.0952 , 38.5742)</li>
+<li>[x] (38.0952 , 38.5742)</li>
 </ol>
 ```{r weeks-ci-99}
 # type your code for Question 6 here, and Knit
-
+inference(y = weeks, data = nc, statistic = "mean", type = "ci", method = "theoretical", conf_level = 0.99)
 ```
 
 <div id="exercise">
@@ -223,7 +236,7 @@ interval?
 </div>
 ```{r weeks-ci-90}
 # type your code for the Exercise here, and Knit
-
+inference(y = weight, data = nc, statistic = "mean", type = "ci", method = "theoretical", conf_level = 0.90)
 ```
 
 <div id="exercise">
@@ -231,13 +244,29 @@ interval?
 </div>
 ```{r gained-mature-ht}
 # type your code for the Exercise here, and Knit
-
+inference(y = weight, x = mature, data = nc, statistic = "mean", type = "ht", null = 0, 
+          alternative = "twosided", method = "theoretical")
 ```
 
 7. Now, a non-inference task: Determine the age cutoff for younger and mature 
 mothers. Use a method of your choice, and explain how your method works.
 ```{r cutoff-mature}
 # type your code for Question 7 here, and Knit
+tapply(nc$mage, nc$mature, summary)
+  
+
+inference(y = mage, x = habit, data = nc, statistic = "mean", type = "ht", null = 0, 
+          alternative = "twosided", method = "theoretical")
+
+
+nc %>%
+  filter(!is.na(habit)) %>%
+  ggplot(aes(x = factor(habit), y = weight)) +
+  geom_boxplot() + coord_flip()
+
+nc %>%
+  ggplot(aes(x = factor(mature), y = weight)) +
+  geom_boxplot() + coord_flip()
 
 ```
 
@@ -255,8 +284,20 @@ your project as well.)
 
 ```{r pick-your-own}
 # type your code for the Exercise here, and Knit
+nc %>%
+  filter(!is.na(whitemom)) %>%
+  ggplot(aes(x = factor(whitemom), y = visits)) +
+  geom_boxplot() + coord_flip()
+  
+inference(y = visits, x = whitemom, data = nc, statistic = "mean", type = "ht", null = 0,
+          alternative = "less", method = "theoretical")
+
+inference(y = visits, x = whitemom, data = nc, statistic = "mean", type = "ci", method = "theoretical")
+
 
 ```
+
+    Despite there is a difference between number of visitis grouping by whitemom (p-value<0.05), the difference in a 95% confidence interval is of about only 1 visit. The difference exists, but it is not big enough to continue the investigation on other levels.
 
 
 <div id="license">
