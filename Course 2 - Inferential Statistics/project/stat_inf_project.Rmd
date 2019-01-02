@@ -1,0 +1,87 @@
+---
+title: "Statistical inference with the GSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+### Loading packages and data
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+library(statsr)
+
+```
+```{r load-data}
+load("gss.Rdata")
+```
+
+
+
+* * *
+
+## Part 1: Data
+<!-- 2 pt for correct reasoning for generabizability – Answer should discuss whether random sampling was used. Learners might discuss any reservations, those should be well justified. -->
+According to the NORC, in the Highlights document, the GSS target population is adults (18+) living in households in the United States. Initially using only English speakers, the survey is applied to Spanish and English speakers since 2006. NORC says that the sample is drawn using an area probability design, for instance, selecting addresses of suburban, urban and rural areas to **scientifically represent the nation** - that is, we assume **random sampling**. Again, this is a characteristic of divisions represents the hierarchical approach, where Weights should be applied in the analysis.
+
+Some **bias** were cited in the documents of GSS as well, such as that they initially were considering only English speakers. Thus, here we will consider only surveys applied for both English and Spanish speakers. Another type of bias may come from the *not usage* of the **weights** established by the survey, for instance, the ones related to the division of the data by areas (rural, urban and suburban). To address this limitation of our analysis, we may consider comparing these groups individually, for instance, we could focus our **observational study** to only address conclusions for the *urban* areas. One interesting point is also that the survey is applied for **only one person per house/adress**, reducing this type of bias.
+
+<!-- 1 pt for correct reasoning for causality – Answer should discuss whether random assignment was used. -->
+Again, our study here is **observational** and we **cannot** conclude **causality**. **No** random assignment was used, thus our conclusions are conducted by finding association patterns and links.
+
+
+
+
+
+
+
+* * *
+
+## Part 2: Research question
+<!-- Should be phrased in a non-causal way (1 pt) -->
+<!-- Should be well defined / not vague (1 pt) -->
+<!-- Is clear why this is of interest to the author / audience (1 pt) -->
+
+
+
+* * *
+
+## Part 3: Exploratory data analysis
+<!-- 3 pts for plots -->
+<!--     Plots should address the research questions (1 pt) -->
+<!--     Plots should be constructed correctly (1 pt) -->
+<!--     Plots should be formatted well – size not too large, not too small, etc. (1 pt) -->
+<!-- 3 pts for summary statistics -->
+<!--     Summary statistics should address the research questions (1 pt) -->
+<!--     Summary statistics should be calculated correctly (1 pt) -->
+<!--     Summary statistics should be formatted well – not taking up pages and pages, etc. (1 pt) -->
+<!-- 4 pts for narrative -->
+<!--     Each plot and/or R output should be accompanied by a narrative (1 pt) -->
+<!--     Narrative should interpret the visuals / R output correctly (1 pts) -->
+<!--     Narrative should address the research question (2 pts) -->
+
+
+
+
+* * *
+
+## Part 4: Inference
+<!-- Hypotheses stated clearly and match research question (4 pts) -->
+<!-- Conditions checked in context of data (4 pts) -->
+<!-- Appropriate methods stated and described (4 pts) -->
+<!-- Correct code and output (6 pts) -->
+<!-- Correct interpretations and conclusions (7 pts) -->
+<!-- Reasoning for why CI is/is not also included (3 pts) -->
+
+<!-- State hypotheses -->
+<!-- Check conditions -->
+<!-- State the method(s) to be used and why and how -->
+<!-- Perform inference -->
+<!-- Interpret results -->
+
+
+
+
