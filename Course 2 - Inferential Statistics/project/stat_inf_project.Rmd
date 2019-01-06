@@ -13,6 +13,9 @@ output:
 library(ggplot2)
 library(dplyr)
 library(statsr)
+library(gridExtra)
+library(grid)
+library("gplots")
 
 ```
 ```{r load-data}
@@ -27,16 +30,25 @@ load("gss.Rdata")
 <!-- 2 pt for correct reasoning for generabizability – Answer should discuss whether random sampling was used. Learners might discuss any reservations, those should be well justified. -->
 According to the NORC, in the Highlights document, the GSS target population is adults (18+) living in households in the United States. Initially using only English speakers, the survey is applied to Spanish and English speakers since 2006. NORC says that the sample is drawn using an area probability design, for instance, selecting addresses of suburban, urban and rural areas to **scientifically represent the nation** - that is, we assume **random sampling**. Again, this is a characteristic of divisions represents the hierarchical approach, where Weights should be applied in the analysis.
 
-Some **bias** were cited in the documents of GSS as well, such as that they initially were considering only English speakers. Thus, here we will consider only surveys applied for both English and Spanish speakers. Another type of bias may come from the *not usage* of the **weights** established by the survey, for instance, the ones related to the division of the data by areas (rural, urban and suburban). To address this limitation of our analysis, we may consider comparing these groups individually, for instance, we could focus our **observational study** to only address conclusions for the *urban* areas. One interesting point is also that the survey is applied for **only one person per house/adress**, reducing this type of bias.
+Some **bias** were cited in the documents of GSS as well, such as that they initially were considering only English speakers. Thus, here we will consider only surveys applied for both English and Spanish speakers. Another type of bias may come from the *not usage* of the **weights** established by the survey, for instance, the ones related to the division of the data by areas (rural, urban and suburban). One interesting point is also that the survey is applied for **only one person per house/adress**, reducing this type of bias.
 
 <!-- 1 pt for correct reasoning for causality – Answer should discuss whether random assignment was used. -->
 Again, our study here is **observational** and we **cannot** conclude **causality**. **No** random assignment was used, thus our conclusions are conducted by finding association patterns and links.
 
+Here, we will work with the most recent year of the survey, once working with weights between survey's years are not scope of this course.
+```{r max-year}
+# getting the last year of survay
+max(gss$year)
 
+```
+ The last year of the survey in this data set is 2012, thus we filter the data by this year,remove observations with NA for the main two variables (explained in the next section) and create a sub-dataset (**data2012**) with 1259 observations:
+```{r filter-2012}
+# filtering observations from 2012
+data2012 <- gss %>%
+  filter(year==2012 & !is.na(consci) & !is.na(degree))
 
-
-
-
+data2012 %>% summarize(observations=n())
+```
 
 * * *
 
@@ -45,6 +57,22 @@ Again, our study here is **observational** and we **cannot** conclude **causalit
 <!-- Should be well defined / not vague (1 pt) -->
 <!-- Is clear why this is of interest to the author / audience (1 pt) -->
 
+Recently the **fake news** and **fake science** have dominated the internet. The freedom of sharing and creating any type of information, establishing "science" based on, for instance, a single experiment without any adequate control, is getting more and more frequent. A recent study has explored variables linking the beliefs on conspiracy theories and their capacity for critical thinking (http://onlinelibrary.wiley.com/doi/10.1002/ejsp.2331/epdf).
+
+Because this fact is of political, social and health concern, here we want to study the relations between the confidence in scientific community (**consci**) and the level of education (**degree**) in the US.
+
+* **consci** (confidence in scientific community): A GREAT DEAL, ONLY SOME, HARDLY ANY
+* **degree** (highest degree): LT HIGH SCHOOL, HIGH SCHOOL, JUNIOR COLLEGE,	BACHELOR,	GRADUATE
+
+The **research question** is defined as follows:
+      
+      Considering the year of 2012, is there a link between the confidence in the scientific community and the education level?
+
+Once we are going to work only with two variables, we reduce the number of columns of our data:
+```{r reducing-columns}
+data2012 <- data2012 %>%
+  select(consci, degree)
+```
 
 
 * * *
@@ -63,8 +91,50 @@ Again, our study here is **observational** and we **cannot** conclude **causalit
 <!--     Narrative should interpret the visuals / R output correctly (1 pts) -->
 <!--     Narrative should address the research question (2 pts) -->
 
+We first analyze the counts of values in variables **consci** and **degree**:
+```{r}
+# plotting variables as horizontal -> Labels are read horizontally
+p1 <- ggplot(aes(x=factor(consci)), data=data2012) + geom_bar() + coord_flip()
+p2 <- ggplot(aes(x=factor(degree)), data=data2012) + geom_bar() + coord_flip()
 
+# Create a grid of plots
+grid.arrange(
+  p1,  p2,
+  nrow = 1,
+  top = "Counts",
+  bottom = textGrob(
+    "Note that count ranges vary according to each variable.",
+    gp = gpar(fontface = 3, fontsize = 9),
+    hjust = 1,
+    x = 1
+  )
+)
+```
 
+The values in the plots are detailed in the following summary:
+```{r variables-summary}
+summary(data2012)
+```
+
+The **above plots** and **summary** indicate that High School is the most frequent level of education and that most of the people does not have confidence or has only some confidence in the scientific community. Note: this refers to the data set, not the population (no inference was computed yet).
+
+According to the article mentioned in the Research Question section, there is a higher chance of people believing in conspiracy theories the bigger is their doubts. Considering that Science is the main factor to indicate true facts, we can see that the bigger numbers of people who believe in lies published in the Web is reinforced by the fact that 639+92=731 of observed answers indicate that they distrust the scientific community -  against 528 that believes. This gives us our first hypothesis test, to check if one number is bigger than the other. Before that, we can already say that, even if the numbers are similar, the consequences of these people believing more on **fake science** could bring serious implications in real life. In fact, the "Science facts" changes, and this could bring this effect of not trusting on Science. On the other hand, this would be evidence that people do not understand how the scientific community actually work. Therefore, we get back to the idea that lack of Critical Thinking is the source of the problem.
+
+To better understand the link between the two variables, we create the following plot, indicating how is the confidence in the scientific community of people from each education level:
+
+```{r plot-of-relation}
+ggplot(aes(x=factor(degree), fill=factor(consci)), data=data2012) + geom_bar(position = position_fill())
+```
+
+From what we can see in the above plot, people with a Graduate degree is the only group where the category "A Great Deal" is above 50% while the category "Hardly Any" almost does not exist.
+
+From an exploratory point of view, we could conclude that:
+      
+      There is a pattern indicating that the closer the education degree is to Science, the more they are confident on the scientific community. In fact, people with graduate degree can be considered scientists and, thus, this could explain the facts described by the data set.
+      
+      Despite the higher confidence in the scientific community from people with Graduate degrees, there is still a big proportion that has Only Some confidence. Thus, if, at the same time being a Scientist could be associated to believe in Science, the big proportion indicates that many Scientists actually do not believe entirely. Also, the Bachelor category presented a change in the proportions too.
+      
+      This Comes to a consideration: would the variability of interpretation of the question about the confidence in the scientific community be great? Could this question be ambiguous? Would a more specific question bring a different setting of proportions? Would the big jump from the idea of "Only Some" to "A Great Deal" be a problem? For instance, there is no option that would indicate: "most of the cases" idea. In fact, some could totally believe in Science from a particular field and do not believe from another field, indicating reasonable Critical Thinking and confidence in Science, but not all Sciences. For this reason, in the next part (4), we will consider only the values Hardly Any as a value of interest, since the "Only Some" is ambiguous.
 
 * * *
 
@@ -81,6 +151,130 @@ Again, our study here is **observational** and we **cannot** conclude **causalit
 <!-- State the method(s) to be used and why and how -->
 <!-- Perform inference -->
 <!-- Interpret results -->
+Given the conclusions from the last section, in this section we will analyze two points:
+
+* Can we consider that the majority of people do not trust entirely in the scientific community?
+* Considering the "Hardly Any" as success, and the other values as failure, are the variables *degree* and *consci* dependent?
+
+### Hypothesis test 1
+#### Stating hypotheses
+The first hypothesis test is for checking if we can say that the majority of people do not give full confidence to the scientific community. Thus, we define our hypotheses as:
+
+$H_0: p_{not\_great\_deal} = 0.5$
+
+$H_A: p_{not\_great\_deal} > 0.5$
+
+where **not\_great\_deal** represents the values "Only Some" and "Hardly Any".
+
+#### Checking conditions
+
+Considering the **not\_great\_deal** as success, we have the proportion and counts summary:
+```{r}
+# Summary of proportion estimates
+summ <- data2012 %>%
+  summarize(success_p=sum(consci=="Only Some" | consci=="Hardly Any")/n(), failure_p=sum(consci=="A Great Deal")/n(), success_c=sum(consci=="Only Some" | consci=="Hardly Any"), failure_c=sum(consci=="A Great Deal"))
+
+summ
+```
+Thus, we met the conditions for the sampling distribution of $\hat p$  being nearly normal:
+
+* the sample observations are independent once they represent the same independent observations of the full data set; also, the sample represents less than 10% of the population from US; that is, each observation represents a individual opinion about the scientific community, that do not influence the others - bias is controled by randomization, sample size and by not surveying more than 1 person per adress;
+
+* we have more than 10 successes and 10 failures in our sample, that is 731 and 528 are greater than 10.
+
+
+#### Methods and Inference
+
+We are going to create the 95% **CI for a proportion** and the **hypothesis test for a proportion**, considering that the **sampling distribution is nearly normal** and the variables **categorical**.
+
+We first define the our **success** value as **not\_great\_deal** (values different from "A Great Deal"), and create a new variable to store this information.
+
+To compute the **CI** we only need to set the confidence level to 0.95:
+```{r}
+data2012 <- data2012 %>%
+  mutate(science=ifelse(consci=="A Great Deal","A Great Deal", "Not A Great Deal" ))
+
+inference(y = science, data = data2012, statistic = "proportion", type = "ci", method = "theoretical", conf_level = 0.95, success = "Not A Great Deal", show_inf_plot = FALSE, show_eda_plot = FALSE)
+```
+
+Then, to compute the **hypothesis test** we set the null value to 0.5 and the alternative to "greater":
+```{r}
+data2012 <- data2012 %>%
+  mutate(science=ifelse(consci=="A Great Deal","A Great Deal", "Not A Great Deal" ))
+
+inference(y = science, data = data2012, statistic = "proportion", type = "ht", method = "theoretical", conf_level = 0.95, alternative = "greater", null = 0.5, success = "Not A Great Deal", show_inf_plot = FALSE, show_eda_plot = FALSE)
+```
+
+We **conclude** the study provides convincing evidence that the majority of Americans does not have full confidence in the scientific community. With 95% confidence, we expect the true proportion to be between 55.34% to 60.79%. This finding can be used for future works to better understand why people are not trusting Science and its effects on political, social or health areas.
+
+
+### Hypothesis test 2
+
+#### Stating hypotheses
+
+As explained in the Part 3, the category "Only Some" of the confidence in scientific community may have been misinterpreted. Thus, we are going to focus this second inference on how the proportion of the value "Hardly Any" is dependent to **degree** of education. Then, our hypothesis are defined as follows:
+
+$H_0: {hardly\_any}$ and $degree$ are independent
+
+$H_A: {hardly\_any}$ and $degree$ are dependent
+
+where **hardly\_any** is true if **consci** equals to "Hardly Any" and false otherwise.
+
+#### Checking conditions
+
+We first create the **hardly\_any** variable:
+
+```{r}
+data2012 <- data2012 %>%
+  mutate(hardly_any=ifelse(consci=="Hardly Any", TRUE, FALSE))
+```
+
+Now considering the **hardly\_any** and **degree** variables, we check for the Sample size condition:
+```{r}
+# Summary of  counts
+table(data2012$hardly_any, data2012$degree)
+```
+
+Given that we have only 2 Graduates have value TRUE for **hardly_any**, this does not check with the **Sample size** condition, which requires at least 5 expected cases for each particular scenario. 
+
+On the other hand, we can use **Randomization for chi-square**, which is valid for any sample size **and is more accurate when the sized samples does not meet the minimum threshold of 5**.
+
+The **independence** condition is satisfied again, once sample observations are independent as the samples from the full data set are. Also, the sample represents less than 10% of the population. Each observation represents an individual opinion about the scientific community and has its own degree of education, that do not influence the others - bias is also controled by randomization, sample size and by not surveying more than 1 person per adress
+
+<!-- Another way to visualize the table is using a ballonplot: -->
+<!-- ```{r} -->
+<!-- balloonplot(t(table(new_data$hardly_any, new_data$degree)), main ="degree", xlab ="", ylab="", -->
+<!--             label = FALSE, show.margins = FALSE) -->
+<!-- ``` -->
+
+
+#### Methods and Inference
+
+Since we have two categorical variables and we want to check if they are dependent, we are going to use the **Chi-Square test for independence**. Thus, we are **not** computing any **CI**.
+
+As explained in the section Checking conditions, we are going to perform a **Randomization**, in this case, the Monte Carlo simulation is applied to compute the p-value:
+```{r}
+d_table <- table(data2012$hardly_any, data2012$degree)
+chisq.test(d_table, simulate.p.value = TRUE)
+```
+
+We **conclude** that the study provides enough evidence (p-value < 0.05) that there is a relation between the **education level** and fact of a person having **hardly any** confidence in the scientific community.
+
+### Answering the research question
+
+Now revisiting the **research question**:
+
+    Considering the year of 2012, is there a link between the confidence in the scientific community and the education level? Is the majority of people not fully trusting the scientific community?
+
+**We conclude that**:
+
+    According to the 2012 data, we have strong evidence that the confidence levels in the scientific community and education levels are associated. Moreover, the majority of people in the United States have doubts when it comes to trusting the scientific community.
+    
+The evidences found here are somehow critical, once it is indicating that most of people in the US does not have full confidence in the scientific community. Given the **fake news** and other fake information spread through the internet, it is important to reinforce **Critical Thinking** to Society, specially for those who does not have a Bachelor or Graduate degree. One **limitation** that we have found is that we would expect that the group of "A Great Deal" could be expected to be much bigger  in the Graduate group than it is, once the Graduate degree represents mostly the scientists - hence, we could expect more confidence on the scientific community.
+
+As **Future work** we may have performing a statistical analysis on the question about the confidence in the scientific community, with the intention of verifying if it is possible that the question was not stated in a well-defined version. For instance, if we apply the current question and a more detailed question, such as with 5 levels of confidences, would we still find that the people with Graduate degree do not have confidence in the scientific community as it seems?
+
+Another research for **future work** could be to analyze the effects of lessons on **Critical Thinking** and explaining how the **Scientific Community** works, by means of random assignment. For this study, more complex questions should be created. Perhaps evaluating their trust in scientific evidences.
 
 
 
