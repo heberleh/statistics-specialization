@@ -1,0 +1,319 @@
+---
+title: "Modeling and prediction for movies"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Loading packages and Data
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+library(statsr)
+library(GGally)
+library("gplots")
+library(gridExtra)
+library(grid)
+library(plotmo)
+```
+
+```{r load-data}
+load("movies.Rdata")
+```
+
+* * *
+
+## Part 1: Data
+
+The data set **is a random sample** of size 651 produced and released before 2016, thus we can generalize our conclusions for movies from that range. The movies may have different scores from each system, since users with different preferences may prefer to use one system or the other. Given that users **voluntarely** rate the movies, we should not consider our conclusions as the World preference. Instead, we should state something similar to "according to users who rated movies produced and released before 2016 from the rating systems Rotten Tomatoes and IMDB...". Also, we should not state anything about users, since we do not garantee that the users who voted for these movies could be considered a sample that represents the population; that is, users that voted for these movies do not represent a random sample of all users. All these could represent **bias** or errors/mistakes in our analysis, depending on how and for what we are using the data. **No random assignment** was used, thus it is suitable for **observational studies**.
+
+In this **observational study**, we will focus only on the ratings from **Roten Tomatoes**. The reason is that doing so we are controlling the possible **bias caused by users that rated a movie in both systems**.
+
+* * *
+
+## Part 2: Research question
+<!-- Should be phrased in a non-causal way (1 pt) -->
+<!-- Should be well defined / not vague (1 pt) -->
+<!-- Is clear why this is of interest to the author / audience (1 pt) -->
+The main charachteristic of the Rotten Tomatoes system is that for many movies the *audience* and *critics* rates can be very different. Identifying the variables that can be associated to the differences could help us understand and define future experiments to try to create movies that both groups would love.
+
+Given the differences between both scores, we define our **resesarch question** as follows:
+
+> Is there an overwall difference between audicence and critics' opinions? Could the differences that happens in each movie be predicted by variables related to Genre, Director, Best Picture and best Actor/Actress Oscars?
+
+The critics score is defined as the percentage of critics that gave a positive review. The audience score is the percentage of users that rated it as 3.5 to 5 stars.
+
+* * *
+
+## Part 3: Exploratory data analysis
+  <!-- 3 pts for plots -->
+  <!--     Plots should address the research questions (1 pt) -->
+  <!--     Plots should be constructed correctly (1 pt) -->
+  <!--     Plots should be formatted well – size not too large, not too small, etc. (1 pt) -->
+  <!-- 3 pts for summary statistics -->
+  <!--     Summary statistics should address the research questions (1 pt) -->
+  <!--     Summary statistics should be calculated correctly (1 pt) -->
+  <!--     Summary statistics should be formatted well – not taking up pages and pages, etc. (1 pt) -->
+  <!-- 4 pts for narrative -->
+  <!--     Each plot and/or R output should be accompanied by a narrative (1 pt) -->
+  <!--     Narrative should interpret the visuals / R output correctly (1 pts) -->
+  <!--     Narrative should address the research question (2 pts) -->
+We first explore the two variables that will be used to create the response variable: **critics_score** and **audience_score**:
+```{r}
+# plotting variables as horizontal -> Labels are read horizontally
+p1 <- ggplot(aes(y=critics_score), data=movies) + geom_boxplot(ymin=0, ymax=100)
+p2 <- ggplot(aes(y=audience_score), data=movies) + geom_boxplot(ymin=0, ymax=100)
+p3 <- ggplot(aes(y=audience_score-critics_score), data=movies) + geom_boxplot()
+
+# Create a grid of plots
+grid.arrange(
+  p1,  p2, p3,
+  nrow = 1,
+  top = "Counts",
+  bottom = textGrob(
+    "Note that count ranges vary according to each variable.",
+    gp = gpar(fontface = 3, fontsize = 9),
+    hjust = 1,
+    x = 1
+  )
+)
+
+summary(movies$critics_score)
+
+summary(movies$audience_score)
+```
+
+With the boxplots, we can see that both critical and audience scores have a similar overall value, with the audience mean and median score greater than the critics score (two first boxplots). The third boxplot presents the **paired** difference. Since we are going to build linear models later, we choose to create a new variable with the paired difference, defined by:
+      
+> $score\_diff_i = |audience\_score_i - critics\_score_i|$
+
+```{r}
+movies <- movies %>% mutate(score_diff = audience_score-critics_score)
+```
+
+Now, we want to make sure that the difference in fact exist to proceed to the Linear Regression analysis.
+So, we will perform a statistical test to check the hypotheses:
+
+$H_0: \mu_{score\_diff} = 0$
+
+$H_A: \mu_{score\_diff} \neq 0$
+
+Since the observations for the difference are independent, the samples are random and we have a great sample size, we test if there is an average difference and what is the 95% confidence interval:
+```{r}
+# Hypotheses test
+inference(y = score_diff, data=movies, type = "ht", statistic = "mean", alternative = "twosided", method = "theoretical", null = 0)
+
+# CI
+inference(y = score_diff, data=movies, type = "ci", statistic = "mean", alternative = "twosided", method = "theoretical", null = 0, conf_level = 0.95)
+```
+By the results above, we are 95% confident that on average the audience score is 3.12 to 6.22 points greater than the critics score. Despite the difference exist and is statistically significant (p < 0.001), it is not too big, considering that the points cand go from 0 to 100. Also, we would expect that the bigger differences occurs only for a few number of movies, since critics usually score, for instance, cult movies with great scores and the general audience would be less interested on these. This is indeed a pattern that we could check in **future work**, once we can see in the histogram of score_diff that for many movies the differences can have absolute value greater than 20 points.
+
+Having checked that in fact there are many movies with great differences and that on average the audience and critics also rate then differently, we are going to create an overview of some movies' variables in association with the **score_diff**.
+
+The first variable is **genre**
+```{r}
+ggplot(data=movies, mapping = aes(x=factor(genre),y=score_diff)) + geom_boxplot() + theme(axis.text.x=element_text(angle=90, hjust=1))
+```
+
+As we can see, "Documentary" and "Musical & Performing Arts" movies have medians bellow 0, indicating critics have some preference on these categores. On the other hand, it is clear that "Action & Adventure" is prefered by the general audience, once 75% of the differences are positive (audience-critics).
+
+The next are **best_pic_nom**, **best_pic_win** and **best_actor_or_actress_win**. The latter is created by the OR operation between variables **best_actress_win** and **best_actor_win**.
+```{r}
+
+movies <- movies %>% 
+  mutate(best_actor_or_actress_win = ifelse(best_actress_win=="yes" | best_actor_win=="yes", "yes", "no"))
+
+p1 <- ggplot(data=movies, mapping = aes(x=factor(best_pic_nom),y=score_diff)) + geom_boxplot() + theme(axis.text.x=element_text(angle=90, hjust=1))
+p2 <- ggplot(data=movies, mapping = aes(x=factor(best_pic_win),y=score_diff)) + geom_boxplot() + theme(axis.text.x=element_text(angle=90, hjust=1))
+p3 <- ggplot(data=movies, mapping = aes(x=factor(best_actor_or_actress_win),y=score_diff)) + geom_boxplot() + theme(axis.text.x=element_text(angle=90, hjust=1))
+
+grid.arrange(
+  p1,  p2, p3,
+  nrow = 1,
+  top = "Counts",
+  bottom = textGrob(
+    "Note that count ranges vary according to each variable.",
+    gp = gpar(fontface = 3, fontsize = 9),
+    hjust = 1,
+    x = 1
+  )
+)
+```
+According to the boxplots, it seems that the variables related to Best Picture and best Actor/Actress could be considered to test in the model building/selecting process.
+
+The variable **director** has many categorical values, thus will only be considered in the following analysis.
+
+
+* * *
+
+## Part 4: Modeling
+<!-- Develop a multiple linear regression model to predict a numerical variable in the dataset. The response variable and the explanatory variables can be existing variables in the dataset, or new variables you create based on existing variables. -->
+
+In this section we explore the Linear Regression method to analyse the association between the explanatory variables **best_pic_nom**, **best_pic_win**, **best_actor_or_actress_win**, **genre** and the response variable **score_diff**.
+
+We first consider all models and check the slopes, adjusted $R^2$ and statistical significance:
+```{r}
+m1 <- lm(score_diff ~ best_pic_nom + best_pic_win + best_actor_or_actress_win + genre + director, data = movies)
+s <- summary(m1)
+s$r.squared
+s$adj.r.squared
+```
+
+When we remove **director** we have a great decrease in the adjusted $R^2$, from 0.43 to 0.04.
+```{r}
+m2 <- lm(score_diff ~ best_pic_nom + best_pic_win + best_actor_or_actress_win + genre, data = movies)
+s2 <- summary(m2)
+s2$r.squared
+s2$adj.r.squared
+```
+
+**Despite it may look that director is a good variable, it is not**. Most of movies have different directors and, by consequence, using this variable would create a predictor extremely overfitted. For instance, by the following code we check that only 5 directors appear in more than 3 movies (they appear in exactly 4 movies). Thus, **we remove the variable director** from the model.
+
+```{r}
+summary(table(factor(movies$director))>3)
+```
+
+Here, then, we define our initial full model, formed by est_pic_nom, best_pic_win, best_actor_or_actress_win and genre:
+```{r}
+summary(m2)
+```
+
+From preliminary experiments and by models m1 and m2, we found that the $R^2$ and adjusted $R^2$ were very low and we could not increase it. Thus, the models do not have good prediction accuracy. **For this reason, we limit here our analysis to understanding which variables are statistically significant predictors of the response**. Hence, we will use here a Backward elimination strategy based on **p-values**.
+
+Given our initial model m2, we now remove the variable/slope with highest p-value, which would be **best_pic_nom**. The new model is m3:
+```{r}
+m3 <- lm(score_diff ~ best_pic_win + best_actor_or_actress_win + genre, data = movies)
+summary(m3)
+```
+
+The p-value decreased. Now the highest p-value is from **best_actor_or_actress_win**, thus model m4 will be:
+```{r}
+m4 <- lm(score_diff ~ best_pic_win  + genre, data = movies)
+summary(m4)
+```
+
+The p-value reduced again, and now the highest p-value is from **best_pic_win**:
+```{r}
+m5 <- lm(score_diff ~  genre, data = movies)
+summary(m5)
+```
+
+Here, using **genre** alone, the model fit p-value increased in comparison to when we used **genre** and **best_pic_win**. Thus, considering the p-value approach, **we chose model m4**, with explanatory variables **genre** and **best_pic_win**:
+
+```{r}
+summary(m4)
+```
+
+With this model, we expect the value of differences be lower (**slope** -10.77, on average) for movies with a Best Picture Oscar, with all others constant. The **intercept** represents the movies with no Best Picture Oscar and that are in the category "Action & Adventure". Since this represents the most positive value, the intercept also represents (here) the group of movies where we find most of the time a positive difference. We can see that in the boxplots from section Part 3, that shows the both Q2 and Q3 above 0, indicating that the audience usually rate this genre of movies with as good more than the critics. All other **slopes** are negative, except "genreArt House & International". Their slope values make the differences be around zero; that is, when a value 1 is set to one of the variables, the slope is summed with the Intercept.
+
+### Diagnostics
+
+#### Linearity of explanatory variables
+
+Since the **genre** and **best_pic_win** are transformed into many **dummy** variables, they met the condition of linearity by definition: they represent 2 points, which represent a line.
+
+#### Nearly normal residuals
+
+The residuals are nearly normal, what can be checked by the following plot:
+
+```{r}
+
+ggplot(data = m4, aes(sample = .resid)) +
+  stat_qq()
+```
+
+#### Constant variability of residuals
+
+On the other hand, **the variability does not look constant**, which is shown in the plot:
+
+```{r}
+ggplot(data = m4, aes(x = .fitted, y = .resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  xlab("Fitted values") +
+  ylab("Residuals")
+
+```
+
+The residuals **do not** follow a **constant variability**.
+ 
+
+<!-- Specify which variables to consider for the full model (1 pt) -->
+<!-- Reasoning for excluding certain variables (2 pts) -->
+<!-- Reasoning for choice of model selection method (2 pts) -->
+<!-- Carrying out the model selection correctly (5 pts) -->
+<!-- Model diagnostics (5 pts) -->
+<!-- Interpretation of model coefficients (5 pts) -->
+
+
+* * *
+
+## Part 5: Prediction
+
+We are now going to check how would our model **m4** predict a movie that is not in the data set. 
+
+According to Rotten Tomatoes attributes (https://www.rottentomatoes.com/m/moonlight_2016) and Awards information from IMDb (https://www.imdb.com/title/tt4975722/awards), the movie is defined as follows:
+
+* Titlle: Moonlight
+* Genre: Drama
+* Best Picture: yes
+* Audience score on Rotten Tomatoes: 0.79 
+* Critics score on Rotten Tomatoes:  0.98
+* score_diff (audience-critics) = 79-98 = -19
+
+Now we are going to use the data and the model to **predict** the score_diff:
+```{r}
+moonlight <- data.frame(genre="Drama", best_pic_win="yes")
+predict(m4, moonlight, interval = "confidence") #default 95%
+```
+
+We are 95% confident that Moonlight (or other movies in the same Gener and with Best Picture Oscar) have score_diff between -22.1558 and 7.212765, the **prediction interval**. In fact, the real **score_diff** is -19, which is in the CI. Despite the range is big, it is difficult to say if there will be a difference or if the critics score will be bigger. On the other hand, we do not expect, on average, the difference to be greater than 7.22; this means that when audience vote mostly as good movie, the critics tend to vote as good to, but then critics vote mostly as good movie, the audience may not. Again, it is important to note that the residuals did not checked one of the conditions and it is extremely not accurate and, thus, this model should not be used for "real-life" purposes.
+
+
+<!-- Pick a movie from 2016 (a new movie that is not in the sample) and do a prediction for this movie using your the model you developed and the predict function in R. Also quantify the uncertainty around this prediction using an appropriate interval. -->
+
+<!--   Correct prediction (2 pts) -->
+<!--   Correct quantification of uncertainty around this prediction with a prediction interval (1 pts) -->
+<!--   Correct interpretation of prediction interval (1 pt) -->
+<!--   Reference(s) for where the data for this movie come from (1 pt) -->
+
+
+* * *
+
+## Part 6: Conclusion
+
+From the analysis we have performed, we understand that we indeed can create a Linear Model with **gener** and **best_pic_win** attributes to predict the differences between critics and audience scores that is statistically significant. On the other hand, we could not create a model with high accuracy or precision. The prediction example, where we predicted the score_diff for Moonlight, showed how the **prediction intervals** can be big, resulting in not accurate prediction. That is, despite our prediction is in the prediction interval, the predicted value of -7.471516 is far from the real value of -19.
+
+Another consideration would be on the **use of categorical** variables: variables that does not have many samples for each value, like the **director**, are bad for building models. To handle this issue, perhaps a bigger sample size could help. In my opinion, to be more accurate, other variables from movies should be considered, which are not in the database. In **future work**, we could interconnect databases with more attributes from each movie. Other attributes also could be simplified, such as the presence of the most famous **artists**, **directors**, etc. Again, a bigger sample size would be necessary, once they are all categorical attributes which are converted in **thousands of dummy** variables, **requiring the number of samples to be even bigger**. Also, the adjusted $R^2$ decreases the bigger is the number of variables.
+
+Now revisiting the Research Question:
+
+> Is there an overwall difference between audicence and critics' opinions? Could the differences that happens in each movie be explained by variables related to Genre, Director, Best Picture and best Actor/Actress Oscars?
+
+We conclude that there is a significant difference between audience and critics' opinions, since the difference between the percentages of high rates from each group exist and is statistically significant (paired t-test, p < 0.05). **On the other hand**, despite the significant relationships found by the model (p <0.05), the variables and our models could not explain the differences, once the **$R^2$** and the adjusted $R^2$ were very low.
+
+This means that this "model explains the data significantly better than would just looking at the average value of the dependent variable", our score_diff. "This often happens when there is a lot of variability in the dependent variable, but there are enough data points for a significant relationship to be indicated" (reference: http://rcompanion.org/handbook/G_10.html).
+
+
+<!-- A brief summary of your findings from the previous sections without repeating your statements from earlier as well as a discussion of what you have learned about the data and your research question. You should also discuss any shortcomings of your current study (either due to data collection or methodology) and include ideas for possible future research. -->
+
+<!--     Conclusion not repetitive of earlier statements (1 pt) -->
+<!--     Cohesive synthesis of findings that appropriate address the research question stated earlier (1 pt) -->
+<!--     Discussion of shortcomings (1 pt) -->
+
+
+<!-- **IN CONCLUSION**, since the the residuals **do not** follow a **constant variability**, combined with the bad $R^2$ we should not consider this model as truth. -->
+
+<!-- > **Our conclusion would be that the studied variables cannot predict the response variable accurately.** -->
+
+
+
+
+
+
+
