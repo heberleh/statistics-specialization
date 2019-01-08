@@ -36,6 +36,7 @@ and the other to be the "bad" machine.
 
 ```{r bandit, echo=FALSE, error=TRUE}
 bandit_sim()
+
 ```
 
 <div class="task exercise">
@@ -110,11 +111,17 @@ Based on the preceding result, what is the probability that Machine 1 is "Bad"
 given you won a game playing on Machine 1?
 
 * 0.3
-* 0.4
+* [x] 0.4
 * 0.5
 * 0.6
 * 0.7
 </div>
+```{r}
+# p(m is good | win) = p(win | good) p(good) / p(win)
+a <- 1/3 * 1/2
+b <- a + (1/2*1/2)
+a/b
+```
 
 <div class="question">
 Based on the preceding result, what is the probability that Machine 2 is "Good" 
@@ -123,16 +130,17 @@ given you won a game playing on Machine 1?
 * 0.3
 * 0.4
 * 0.5
-* 0.6
+* [x] 0.6
 * 0.7
 </div>
+
 
 <div class="question">
 Under the Bayesian paradigm, which of the following correctly matches the 
 probabilities with their names?
 
  
-* Posterior - $P(M_1 \text{ is Good} ~|~ \text{Win on } M_1)$ <br/> Prior - $P(M_1 \text{ is Good})$ <br/> Likelihood - $P(\text{Win on } M_1 ~|~ M_1 \text{ is Good})$
+* [x] Posterior - $P(M_1 \text{ is Good} ~|~ \text{Win on } M_1)$ <br/> Prior - $P(M_1 \text{ is Good})$ <br/> Likelihood - $P(\text{Win on } M_1 ~|~ M_1 \text{ is Good})$
 * Posterior - $P(M_1 \text{ is Good} ~|~ \text{Win on } M_1)$ <br/> Prior - $P(\text{Win on } M_1 ~|~ M_1 \text{ is Good})$ <br/> Likelihood - $P(M_1 \text{ is Good})$ 
 * Posterior - P(\text{Win on } M_1 ~|~ M_1 \text{ is Good})$ <br/> Prior - P(M_1 \text{ is Good} ~|~ \text{Win on } M_1)$ <br/> Likelihood - $P(M_1 \text{ is Good})$
 * Posterior - $P(\text{Win on } M_1 ~|~ M_1 \text{ is Good})$ <br/> Prior - $P(M_1 \text{ is Good})$ <br/> Likelihood - $P(M_1 \text{ is Good} ~|~ \text{Win on } M_1)$ 
@@ -155,6 +163,7 @@ following code in the RStudio Console:
 
 ```{r}
 bandit_posterior(data = data.frame(machine = 1, outcome = "W"))
+bandit_posterior(data = data.frame(machine = 2, outcome = "W"))
 ```
 
 We can also use this function to calculate the posterior probabilities for 
@@ -162,7 +171,7 @@ additional plays, for example playing Machine 1 twice, first winning and then
 losing.
 
 ```{r}
-bandit_posterior(data = data.frame(machine = c(1,1), outcome = c("W","L")))
+bandit_posterior(data = data.frame(machine = c(1,1), outcome = c("W","W")))
 ```
 
 We have discussed how the Bayesian approach allows for updating procedures where 
@@ -199,6 +208,18 @@ times, and then playing Machine 2 three times with 2 wins then 1 loss.
 
 ```{r Q4}
 # Type your code for Question 4 here
+bandit_posterior(data = data.frame(machine = c(1,1,2,2,2), outcome = c("W","W","W","W","L")))
+
+data1 <- data.frame(machine = c(1), outcome = c("W"))
+data2 <- data.frame(machine = c(1), outcome = c("W"))
+data3 <- data.frame(machine = c(2), outcome = c("W"))
+data4 <- data.frame(machine = c(2), outcome = c("W"))
+data5 <- data.frame(machine = c(2), outcome = c("L"))
+bandit_posterior(data1) %>% 
+  bandit_posterior(data2, prior = .)%>% 
+  bandit_posterior(data3, prior = .)%>% 
+  bandit_posterior(data4, prior = .)%>% 
+  bandit_posterior(data5, prior = .)
 ```
 
 <div class="question">
@@ -208,12 +229,13 @@ twice and winning both times?
 
 * $P(M_1\text{ is good}~|~\text{data}) = 0.250$,<br/> $P(M_2\text{ is good}~|~\text{data}) = 0.750$
 * $P(M_1\text{ is good}~|~\text{data}) = 0.429$,<br/> $P(M_2\text{ is good}~|~\text{data}) = 0.571$
-* $P(M_1\text{ is good}~|~\text{data}) = 0.571$,<br/> $P(M_2\text{ is good}~|~\text{data}) = 0.429$
+* [x] $P(M_1\text{ is good}~|~\text{data}) = 0.571$,<br/> $P(M_2\text{ is good}~|~\text{data}) = 0.429$
 * $P(M_1\text{ is good}~|~\text{data}) = 0.750$,<br/> $P(M_2\text{ is good}~|~\text{data}) = 0.250$
 </div>
 
 ```{r Q5}
 # Type your code for Question 5 here
+bandit_posterior(data = data.frame(machine = c(2,2,2,1,1), outcome = c("W","W","L","W","W")))
 ```
 
 
@@ -227,6 +249,11 @@ the subsequent three plays on Machine 2.
 
 ```{r E3}
 # Type your code for Exercise 3 here
+bandit_posterior(data3) %>% 
+  bandit_posterior(data4, prior = .)%>% 
+  bandit_posterior(data5, prior = .)%>% 
+  bandit_posterior(data1, prior = .)%>% 
+  bandit_posterior(data2, prior = .)
 ```
 
 
@@ -282,6 +309,9 @@ Plot the result of your last 50 plays using the code `plot_bandit_posterior(data
 
 ```{r E6}
 # Type your code for Exercise 6 here
+data = data.frame(machine = c(2L, 1L, 2L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 1L, 1L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L), outcome = c("W", "L", "L", "L", "W", "W", "W", "L", "W", "L", "W", "L", "L", "L", "L", "L", "L", "L", "L", "W", "L", "L", "L", "W", "L", "L", "W", "L", "W", "W", "L", "L", "W", "W", "W", "L", "L", "L", "L", "L", "L", "L", "W", "L", "W", "L", "L", "W", "W", "L", "W", "W", "L", "L", "W", "L", "L", "W", "L", "W", "L", "W", "W", "L"))
+
+plot_bandit_posterior(data)
 ```
 
 <div class="question">
@@ -289,7 +319,7 @@ From the plot generated in the example above, we can see that the posterior prob
 
 * $P(M_1~|~\text{data})$ and $P(M_2~|~\text{data})$ are complementary
 * Machine 1 and Machine 2 being "good" are mutually exclusive events
-* Both of the above
+* [x] Both of the above
 </div>
 
 <div class="license">
