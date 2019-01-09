@@ -164,6 +164,8 @@ following code in the RStudio Console:
 ```{r}
 bandit_posterior(data = data.frame(machine = 1, outcome = "W"))
 bandit_posterior(data = data.frame(machine = 2, outcome = "W"))
+
+
 ```
 
 We can also use this function to calculate the posterior probabilities for 
@@ -325,4 +327,22 @@ From the plot generated in the example above, we can see that the posterior prob
 <div class="license">
 This work is licensed under [GNU General Public License v3.0](https://www.gnu.org/licenses/quick-guide-gplv3.html).
 </div>
+
+
+
+```{r}
+p <- c(0.2,0.4,0.5,0.6,0.8)
+prior <- c(1/8, 1/8, 1/2, 1/8, 1/8)
+likelihood <- dbinom(3, size=50, prob=p)
+
+likelihood
+numerator <- prior * likelihood
+denominator <- sum(numerator)
+posterior <- numerator / denominator
+sum(posterior)
+posterior
+
+bandit_posterior(data.frame(machine = c(1,1,1), outcome = c("W","W","W")), prior = c(m1_good = 0.5, m2_good = 0.5), win_probs = c(good = 1/2, bad = 1/2))
+
+```
 
