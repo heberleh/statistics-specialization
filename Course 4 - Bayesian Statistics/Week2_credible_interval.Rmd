@@ -585,6 +585,72 @@ mean(cr_i)
 cr_i
 ```
 
+
+```{r}
+n <- 15
+x <- 3
+
+a <- 1
+b <- 1
+alfa <- a+x
+beta <- b+n-x
+
+a <- alfa
+b <- beta
+x <- 5
+alfa <- a+x
+beta <- b+n-x
+
+# priori <- qbeta(c(0.2), shape1 = a, shape2 = b)
+# posteriori <- qbeta(c(0.2), shape1 = alfa, shape2 = beta)
+# 
+# pbeta(q = 0.2, shape1 = alfa, shape2 = beta)
+# 
+# posteriori
+
+```
+
+
+```{r}
+
+# Normal-Normal
+n <- 1
+mu_belief = 200
+sd_belief = 2
+
+mu_data = 149.3
+sd_data = 50
+
+
+v = (mu_belif*(sd_belief^2) + n*mu_data*(sd_data^2))  /  (sd_belief^2+ n*(sd_data^2))
+
+t = sqrt(((sd_belief^2)*(sd_data^2))    /   ((sd_belief^2)+n*(sd_data^2)))
+
+v
+t
+t^2
+```
+
+
+```{r}
+x<-seq(0,10,by=0.01)
+prior<-dgamma(x,2,1)
+likelihood<-dnorm(x,4,0.5)/1e6
+posterior<-prior*likelihood
+plot(x,likelihood,type="l",col="red",ylim=c(0,.000001))
+lines(x,posterior,col="black")
+lines(x,prior,col="blue")
+```
+
+
+
+
+```{r}
+pstar=(1-0.75)^2*0.5/(0.75^2*.5+0.25^2*.5)
+pheadPost=0.75*pstar+(1-pstar)*.25
+pheadPost
+```
+
 <div class="license">
 This work is licensed under [GNU General Public License v3.0](https://www.gnu.org/licenses/quick-guide-gplv3.html).
 </div>
