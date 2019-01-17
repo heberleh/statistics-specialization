@@ -1,0 +1,321 @@
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+library(statsr)
+library(BAS)
+library(GGally)
+library("gplots")
+library(gridExtra)
+library(grid)
+library(plotmo)
+library(MASS)
+library(tidyverse)
+library(broom)
+
+options(width=100)
+```
+
+### Load data
+
+```{r load-data}
+load("movies.Rdata")
+```
+
+* * *
+
+## Part 1: Data
+
+Since the dataset is comprised of 651 **randomly sampled** movies produced and released before 2016, we can **generalize** our conclusions about **audience_score** to the population of movies rated by users of the two web-sytems. One source of **bias** is that users who rated a movie on IMDb may also have rated the movies on Rotten Tomatoes. Therefore, if we create a model that uses a Rotten Tomatoes measure as response variable and a IMDb measure as explanatory variable, we may have bias, since part of the information are given by the same users in both systems. Another fact is that the ratings are expected to be correlated, given the bias described. **Random assignment** was **not** used, so our conclusions **cannot** be of causation.
+
+* * *
+
+## Part 2: Data manipulation
+
+First we are going to remove observations with NA value:
+```{r}
+movies <- na.omit(movies)
+```
+
+Then, we are going to separate the **test observation** from the **train observations**. The first will be used to test our model in the section **Prediction**; the latter is used for creating models.
+
+We are going to set the **train observations** to the **movies** variable, having the effect of removing one observation from **movies**, the one that is the **test observation:**
+```{r}
+
+set.seed(123)
+train_ind <- sample(seq_len(nrow(movies)), size = nrow(movies)-1)
+
+# our test Observation for prediction test
+test_movie <- movies[-train_ind, ,drop=FALSE]
+
+# our train data set for modeling and data exploration
+movies <- movies[train_ind,]
+
+```
+
+Our test obervation for prediction is:
+```{r}
+test_movie
+```
+
+
+
+For this analysis, we must create some variables as follows:
+
+```{r}
+
+# Create new variable based on `title_type`: New variable should be called 
+# `feature_film` with levels yes (movies that are feature films) and no
+movies <- movies %>%
+            mutate(feature_film=ifelse(title_type=="Feature Film", "yes", "no"))
+
+# Create new variable based on `genre`: New variable should be called `drama`
+# with levels yes (movies that are dramas) and no
+movies <- movies %>%
+            mutate(drama=ifelse(genre=="Drama", "yes", "no"))
+
+# Create new variable based on `mpaa_rating`: New variable should be called 
+# `mpaa_rating_R` with levels yes (movies that are R rated) and no
+movies <- movies %>%
+            mutate(mpaa_rating_R=ifelse(mpaa_rating=="R", "yes", "no"))
+
+
+# Create two new variables based on `thtr_rel_month`: 
+# + New variable called `oscar_season` with levels yes (if movie is released in November, October, or December) and no 
+# + New variable called `summer_season` with levels yes (if movie is released in May, June, July, or August) and no
+movies <- movies %>%
+            mutate(oscar_season=ifelse(thtr_rel_month >= 10 & thtr_rel_month <= 12 , "yes", "no"),
+                   
+                   summer_season=ifelse(thtr_rel_month >= 5 & thtr_rel_month <= 8, "yes", "no")
+                   )
+```
+
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+We are going to conduct analyses on the relation of the new variables **feature_film**, **drama**, **mpaa_rating_R**, **oscar_season** and **summer_season** to the response variable **audience_score**.
+
+The following boxplots show the visualization of distribution of **audience_score** from each group of **yes** and **no** of our new binary-categorical variables. The histogram shows the distribution of **audience_score**.
+```{r}
+
+# plotting variables as horizontal -> Labels are read horizontally
+p0 <- ggplot(aes(x=audience_score), data=movies) + geom_histogram(binwidth = 7)
+p1 <- ggplot(aes(x=feature_film, y=audience_score), data=movies) + geom_boxplot()
+p2 <- ggplot(aes(x=drama, y=audience_score), data=movies) + geom_boxplot()
+p3 <- ggplot(aes(x=mpaa_rating_R, y=audience_score), data=movies) + geom_boxplot()
+p4 <- ggplot(aes(x=oscar_season, y=audience_score), data=movies) + geom_boxplot()
+p5 <- ggplot(aes(x=summer_season, y=audience_score), data=movies) + geom_boxplot()
+
+# Create a grid of plots
+grid.arrange(
+  p0, p1,  p2, p3, p4, p5,
+  nrow = 2,
+  top = "Audience Score",
+  bottom = textGrob(
+    "",
+    gp = gpar(fontface = 3, fontsize = 9),
+    hjust = 1,
+    x = 1
+  )
+)
+
+```
+
+From the plots above we see that the bigger difference is from audience_scores from feature_film. Other variables have small differences, mostly in the median.
+
+```{r}
+summary(movies$audience_score)
+```
+
+The median of **audience_score** is 65 and the mean is 62, which are not easily understood form the histogram.
+
+
+* * *
+
+## Part 4: Modeling
+
+In this section we are supposed to use specific variables to create a final model.
+
+The formula for the regression model is:
+
+> **audience_score** ~ feature_film + drama + runtime + mpaa_rating_R + thtr_rel_year + oscar_season + summer_season + imdb_rating + imdb_num_votes + critics_score + best_pic_nom + best_pic_win + best_actor_win + best_actress_win + best_dir_win + top200_box
+
+Since the number of features is not great, we are going to use Baysean Regression to create **all possible models** with these features considering the BIC as prior and uniform prior for models, giving all the models the same pior probability:
+```{r}
+
+movies <- movies %>%
+            mutate(log_audience_score=log2(audience_score))
+
+movies <- na.omit(movies)
+
+movies.BIC <- bas.lm(audience_score ~ 
+                     imdb_rating +  critics_score + runtime + imdb_num_votes +
+                     feature_film + drama  + mpaa_rating_R + thtr_rel_year +
+                     oscar_season + summer_season  +
+                     best_pic_nom + best_pic_win + best_actor_win +
+                     best_actress_win + best_dir_win + top200_box
+                   , data = movies,
+                   prior = "BIC",
+                   modelprior = uniform())
+
+summary(movies.BIC)
+
+```
+
+With the summary of the model fitted, we can see that only two **imdb_rating** and **critics_score** have posterior probability greater than 0.5. In fact, when we analyze all the built models, we see that these two variables are the most present in the best models, as shown in the figure bellow:
+```{r}
+image(movies.BIC, rotate=F)
+```
+
+
+By analysing the other methods, HPM, MPM and BPM, we see that they mostly agree, except for the use of the variable "runtime". This variable apperars in two of the approachs bellow, and also resulted in the highest NF, R squared and posterior probability. Despite this fact, the second model which does not include "runtime" also had similar scores. Therefore, it is interesting to use the **Bayesian Model Average**.
+
+```{r}
+BMA <- predict(movies.BIC, estimator = "BMA")
+
+HPM <- predict(movies.BIC, estimator = "HPM")
+variable.names(HPM)
+
+MPM <- predict(movies.BIC, estimator = "MPM")
+variable.names(MPM)
+
+BPM <- predict(movies.BIC, estimator = "BPM", se.fit = TRUE)
+variable.names(BPM)
+```
+
+
+All three variables selected by the model selection approaches seem to be linear with audience_score, being **runtime** the more difficult to say:
+```{r}
+
+p1 <- ggplot(data = movies, aes(x = imdb_rating, y = audience_score)) +
+  geom_point() +
+  stat_smooth(method = "lm", se = FALSE)
+
+p2 <- ggplot(data = movies, aes(x = critics_score, y = audience_score)) +
+  geom_point() +
+  stat_smooth(method = "lm", se = FALSE)
+
+p3 <- ggplot(data = movies, aes(x = runtime, y = audience_score)) +
+  geom_point() +
+  stat_smooth(method = "lm", se = FALSE)
+grid.arrange(
+  p1,  p2, p3,
+  nrow = 1,
+  top = "Checking Linearity",
+  bottom = textGrob(
+    "",
+    gp = gpar(fontface = 3, fontsize = 9),
+    hjust = 1,
+    x = 1
+  )
+)
+```
+```{r}
+ggpairs(movies, columns=c("audience_score", "imdb_rating", "critics_score", "runtime"))
+```
+
+As explained in section Data, these variables are dependent, and have the correlation behaving as expected. For instance, the audience_score is expected to be similar to the imdb_rating, since both measurements are based on general public. On the other hand, we expect the critics_score to be a little less similar to the audience_score, and, consequently, to the imdb_rating. Therefore, the proposal of creating a model using these variables as a **must** of this exercise is somehow strange.
+
+When we analyze the Residuals of the BMA we se that it also **does not follow constant variance nor is random**, thus violating assumptions:
+```{r}
+p <- plot(movies.BIC, which = 1)
+```
+
+
+Despite the other assumption is not met, we can say that it is nearly normal, with a slightly skew to the left, being the Mean slightly smaller than the median. We can see this by the plots and summary bellow:
+```{r}
+model <- lm(audience_score ~ 
+                     imdb_rating + imdb_num_votes + critics_score + 
+                     feature_film + drama + runtime + mpaa_rating_R + thtr_rel_year +
+                     oscar_season + summer_season  +
+                     best_pic_nom + best_pic_win + best_actor_win +
+                     best_actress_win + best_dir_win + top200_box, movies)
+
+model <- augment(model)
+
+ggplot(data = model, aes(x = .resid)) +
+  geom_histogram(binwidth =1.5) +
+  xlab("Residuals")
+
+ggplot(model) +
+  geom_qq(aes(sample = .std.resid)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  labs(x = "Theoretical quantiles", y = "Standardized residuals")
+
+summary(model$.std.resid)
+```
+
+In conclusion, given the dependency of explanatory and response variables, we should not trust in the models created here and defined as task of this project.
+
+**Interpreting the three main coefficients** of the model:
+```{r}
+coef <- coefficients(movies.BIC)
+confint(coef)
+```
+
+With all other attributes with values fixed, we can say that:
+
+* **imdb_rating**: For each additional point of imdb_rating, there is a 95% chance that average audience_score will **increase by 1.353669e+01 to 1.647602e+01**.
+
+
+* **critics_score**:  For each additional point of critics_score, there is a 95% chance that average audience_score will **increase by 0.0 to 1.092570e-01**.
+
+
+* **runtime**: For each additional minute in runtime, there is a 95% chance that average audience_score will **decrease by 0.0 to 8.914996e-02**.
+
+Since the three atributes are numerical, we can state in the form:
+
+
+
+* * *
+
+## Part 5: Prediction
+
+As stated before, we divided the entire dataset into **train** and **test** sets. Thus, the reference for the test observation (the new movie) is the original set.
+
+Hence, to predict we will use the model which was created with observations other than the test observation:
+```{r}
+test_movie <- test_movie %>%
+  mutate(
+      feature_film=ifelse(title_type=="Feature Film", "yes", "no"),
+      mpaa_rating_R=ifelse(mpaa_rating=="R", "yes", "no"), 
+      drama=ifelse(genre=="Drama", "yes", "no"), 
+      oscar_season=ifelse(thtr_rel_month >= 10 & thtr_rel_month <= 12 , "yes", "no"),
+      summer_season=ifelse(thtr_rel_month >= 5 & thtr_rel_month <= 8, "yes", "no"))
+
+BMA <- predict(movies.BIC, test_movie, estimator = "BMA", se.fit = TRUE)
+ci_bma <- confint(BMA, estimator = "BMA")
+opt_bma <- which.max(BMA$fit)
+ci_bma[opt_bma, ]
+
+test_movie$audience_score
+```
+
+As we can see, the true audience_score is not even in the credible interval and quite far form the pred value of 35.35.
+
+This may be explained by the low BF value and by all the bias explained in this report. It may also be caused by the violation of the assumption of constant variance of residuals.
+
+* * *
+
+## Part 6: Conclusion
+
+We created models with considerable good R squared and decided to use the Model Average, since more than one model had good scores. On the other hand, we cannot trust the models created using the dependent variables, such as scores given by users on different systems. This is a big **shortcoming**.
+
+Unless we want to populate a new database with estimates based on other systems, there might not be a reason to create this type of analysis. If the idea is indeed this one, then, attributes from the Rotten Tomatoes should not be considered in the model. That is, we should only consider values from the old system that will predic values for a new system.
+
+If the puporse of this project is to ignore the dependence of the variables, then, we have found that most of them are not relevant to model building, once most of them have high probability of coeficient Zero. Except the most import 3 variables that were cited in the report.
+
+As **future work**, one could consider different transformations or trying to use variables that are by definition not dependent to each other.
+
+One option would be consider the attribute **feature_film** with have big differences of audience_score among groups "yes" and "no". Then, we could remove highly correlated features, such as the **imdb_rating** vs. **critics_score**, and repeat the process.
+
+
+
+
+
+

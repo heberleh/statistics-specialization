@@ -1,0 +1,219 @@
+# Introduction
+
+The purpose of this section is to review some of the key concepts in basic R usage, and statistical testing
+
+- Reading data into R
+- The data-frame representation of data in R
+- Selecting rows and columns from a data frame
+- Computing numerical summaries
+- Basic plotting
+- Getting help on functions in RStudio
+
+
+## About this tutorial
+
+- The traditional way to enter R commands is via the Terminal, or using the console in RStudio (bottom-left panel when RStudio opens for first time).
+- However, for this course we will use a relatively new feature called R-notebooks.
+- An R-notebook mixes plain text with R code
+    + The R code can be run from inside the document and the results are displayed directly underneath
+- Each chunk of R code looks something like this.
+
+```{r}
+
+```
+
+- Each line of R can be executed by clicking on the line and pressing CTRL and ENTER
+- Or you can press the green triangle on the right-hand side to run everything in the chunk
+    + Try this now!
+
+```{r}
+print("Hello World")
+```
+
+- You can add R chunks by pressing CRTL + ALT + I
+    + or using the Insert menu option
+    + (can also include code from other languages such as Python or bash)
+
+The document may also contain other formatting options that are used to render the HTML (or PDF, Word) output.
+
+Here is some *italic* text, but we can also write in **bold**, or write things
+
+- in 
+- a 
+- list
+    + which include sub-lists
+
+
+
+# Example Analysis
+
+We will use a dataset from The University of Sheffield Mathematics and Statistics Help group ((MASH)(https://www.sheffield.ac.uk/mash/statistics2/anova)).
+
+> The data set Diet.csv contains information on 78 people who undertook one of three diets. There is background information such as age, gender (Female=0, Male=1) and height. The aim of the study was to see which diet was best for losing weight so the independent variable (group) is diet.
+
+
+## Reading and inspecting the data
+
+
+Like other software (Word, Excel, Photoshop….), R has a default location where it will save files to and import data from. This is known as the working directory in R. You can query what R currently considers its working directory by executing the following R command:-
+
+```{r}
+getwd()
+```
+
+*N.B.*Here, a set of open and closed brackets () is used to run the `getwd` function with no arguments.   
+*Note if you are following this material on a Windows machine as opposed to a Linux or MacOS machine 
+you will get a path like C:\Users\Fred. If you want to use the complementing R command 'setwd()' to set
+the working directory you MUST escape the \ i.e. setwd("C:\\Users\\Fred").  
+We can also list the files in a specific directory with:-
+
+```{r}
+list.files("data/")
+```
+
+A useful sanity check is the file.exists function which will print TRUE is the file can be found in the working directory.
+
+```{r}
+file.exists("data/diet.csv")
+```
+
+
+
+- Assuming the file can be found, we can use the `read.csv` function to import the data. Other functions can be used to read tab-delimited files (read.delim) or a generic read.table function. A data frame object is created.
+- The file name `diet.csv` is the only *argument* to the function `read.csv`
+    + arguments are listed inside the brackets
+    + for functions requiring more than one argument (input), arguments are separated by commas
+    + a function may have default values for some arguments; meaning they do not need to be specified
+- The characters `<-` are used to tell R to create a variable
+    + without this, the data are not loaded into memory and you won't be able to work with them
+- If you get an error saying `Error in file(file, “rt”) : cannot open the connection...`, you might need to change your working directory or make sure the file name is typed correctly (R is case-sensitive)
+- Typing the name of an object will cause R to print the contents to the screen
+
+```{r}
+diet <- read.csv("data/diet.csv")
+diet
+```
+
+### A note on importing your own data
+
+If you are trying to read your own data, and encounter an error at this stage, you may need to consider if your data are in the correct form for analysis. Like most programming languages, R will struggle if your spreadsheet has been heavily formatted to include colours, formulas and special formatting.
+
+These references will guide you through some of the pitfalls and common mistakes to avoid when formatting data
+
+- [Formatting data tables in Spreadsheets](http://www.datacarpentry.org/spreadsheet-ecology-lesson/01-format-data.html)
+- [Data Organisation tutorial by Karl Broman](http://kbroman.org/dataorg/)
+- [The Quartz guide to bad data](https://github.com/Quartz/bad-data-guide/blob/master/README.md)
+
+
+
+
+`diet` is an example of a data frame. The data frame object in R allows us to work with “tabular” data, like we might be used to dealing with in Excel, where our data can be thought of having rows and columns. The values in each column have to all be of the same type (i.e. all numbers or all text).
+
+- the `summary` function will provide a overview of the contents of each column in the table
+    + the type of summary provided depends on the data type in each column
+
+```{r}
+summary(diet)
+```
+
+- particular columns can be accessed using the `$` operator
+    + ***TIP*** RStudio will allow auto-complete using the *Tab* key
+    
+```{r}
+diet$gender
+diet$age
+
+
+```
+
+We can create new columns based on existing ones
+
+```{r}
+diet$weight.loss <- diet$final.weight - diet$initial.weight
+
+```
+
+Subsetting rows and columns is done using the `[rows, columns]` syntax; where `rows` and `columns` are *vectors* containing the rows and columns you want
+
+- you can choose to omit either vector to show all rows and columns. *However, you still need to remember the `,`
+
+```{r}
+diet[1:5,]
+diet[,2:3]
+```
+
+Logical tests can be used to select rows. e.g. using `==`, `<`, `>`
+
+```{r}
+diet$diet.type == "A"
+
+dietA <- diet[diet$diet.type == "A",]
+dietA
+```
+
+
+
+## Visualisation 
+
+All your favourite types of plot can be created in R
+
+
+- Simple plots are supported in the *base* distribution of R (what you get automatically when you download R). 
+    + `boxplot`, `hist`, `barplot`,... all of which are extensions of the basic `plot` function
+- Many different customisations are possible
+    + colour, overlay points / text, legends, multi-panel figures
+- ***You need to think about how best to visualise your data*** 
+    + http://www.bioinformatics.babraham.ac.uk/training.html#figuredesign
+- R cannot prevent you from creating a plotting disaster: 
+    + http://www.businessinsider.com/the-27-worst-charts-of-all-time-2013-6?op=1&IR=T
+
+    
+Plots can be constructed from vectors of numeric data, such as the data we get from a particular column in a data frame.
+
+- a histogram is commonly-used to examine the distribution of a particular variable
+
+```{r}
+hist(diet$weight.loss)
+```
+
+- a boxplot is often used to compare distributions visually
+    + if given a data-frame, each column will be shown as a separate box
+    + otherwise the formula syntax `~` is used to define x and y variables
+
+```{r}
+boxplot(diet$weight.loss~diet$diet.type)
+
+```
+
+- scatter plots can be constructed by given two vectors as arguments to `plot`
+
+```{r}
+plot(diet$age,diet$initial.weight)
+```
+
+
+*Lots* of customisations are possible to enhance the appaerance of our plots. Not for the faint-hearted, the help pages `?plot` and `?par` give the full details. In short,
+
+- Axis labels, and titles can be specified as character strings. 
+
+- R recognises many preset names as colours. To get a full list use `colours()`, or check this [online reference](http://www.stat.columbia.edu/~tzheng/files/Rcolor.pdf).
+    + can also use `*R*ed, *G*reen, *B*lue values; which you might get from a paint program
+- Plotting characters can be specified using a pre-defined number
+
+```{r}
+boxplot(diet$weight.loss~diet$diet.type, 
+        ylab="Weight Loss", 
+        xlab="Diet Type",
+        col=c("yellow","blue","red"),
+        main="Weight Loss According to diet type")
+```
+
+You can get help on any of the functions that we will be using in this course by using the '?' or 'help()' commands. The help will appear in the help pane (usually bottom RH corner) .
+
+```{r}
+?lm
+```
+
+```{r}
+help(lm)
+```
