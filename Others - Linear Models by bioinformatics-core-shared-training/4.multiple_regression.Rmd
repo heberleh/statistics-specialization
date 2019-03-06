@@ -139,6 +139,7 @@ Now use stepwise regression, performing backward elimination in order to automat
 ```{r}
 library(MASS)
 summary(stepAIC(m8))
+
 ```
 
 Are all terms significant? Is this model suitable? What are the pro's and con's of this approach? 
