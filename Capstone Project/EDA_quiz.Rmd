@@ -159,12 +159,20 @@ Use scatterplots for describing the relationship between two numerical variables
 <li> Beta(954, 46)
 <li> Beta(963, 46)
 <li> Beta(954, 47)
-<li> Beta(963, 47)
+<li> [x] Beta(963, 47)
 </ol>
 
 ```{r Q6}
 # type your code for Question 6 here, and Knit
+alfa = 9
+beta = 1
 
+ames_train %>% filter(Garage.Cars > 0) %>% count() -> x
+ames_train %>% filter(!is.na(Garage.Cars)) %>% count() -> n
+
+palfa = alfa + x
+pbeta = beta + n - x
+c(palfa, pbeta)
 ```
 
 \fb{Recall that if the prior is $Beta(\alpha,\beta)$, then the posterior with $x$ successes in $n trials$ is $Beta(\alpha+x,\beta+n-x)$.
@@ -178,13 +186,21 @@ Make inferences about a proportion using a conjugate Beta prior:
 <ol>
 <li> Over 30 percent of houses were built after the year 1999.
 <li> The median housing price is greater than the mean housing price.
-<li> 21 houses do not have a basement.
+<li> [x] 21 houses do not have a basement.
 <li> 4 houses are located on gravel streets.
 </ol>
 
 ```{r Q7}
 # type your code for Question 7 here, and Knit
+ames_train %>% filter(Year.Built>1999) %>% count() -> after1999
+ames_train %>% filter(!is.na(Year.Built)) %>% count() -> total
+after1999/total
 
+ames_train %>% summarize(mean=mean(price), median=median(price), median_greater_than_mean=median(price)>mean(price))
+
+ames_train %>% filter(Total.Bsmt.SF==0) %>% count()
+
+ames_train %>% group_by(Street) %>% count()
 ```
 
 \fb{For each of the statements, determine whether it is true or false by using functions such as `summary`, `sum`, or `median` to describe the distribution of a relevant variable.
@@ -195,7 +211,7 @@ Describe the distribution of a single variable.
 
 8. Test, at the $\alpha = 0.05$ level, whether homes with a garage have larger square footage than those without a garage.
 <ol>
-<li> With a p-value near 0.000, we reject the null hypothesis of no difference.
+<li> [x] With a p-value near 0.000, we reject the null hypothesis of no difference.
 <li> With a p-value of approximately 0.032, we reject the null hypothesis of no difference.
 <li> With a p-value of approximately 0.135, we fail to reject the null hypothesis of no difference.
 <li> With a p-value of approximately 0.343, we fail to reject the null hypothesis of no difference.
@@ -203,7 +219,8 @@ Describe the distribution of a single variable.
 
 ```{r Q8}
 # type your code for Question 8 here, and Knit
-
+ames_train$hasGarage <- ifelse(ames_train$Garage.Area>0, 1, 0)
+inference(y = area, x = hasGarage, data = ames_train, statistic = "mean", type = "ht", alternative="less", method = "theoretical")
 ```
 
 \fb{Use a hypothesis test to compare two means.  Use a pooled standard error to estimate the p-value. 
@@ -216,13 +233,25 @@ Use the t-distribution for inference on a single mean, difference of paired (dep
 9. For homes with square footage greater than 2000, assume that the number of bedrooms above ground follows a Poisson distribution with rate $\lambda$.  Your prior on $\lambda$ follows a Gamma distribution with mean 3 and standard deviation 1.  What is your posterior mean and standard deviation for the average number of bedrooms in houses with square footage greater than 2000 square feet?
 <ol> 
 <li> Mean: 3.61, SD: 0.11
-<li> Mean: 3.62, SD: 0.16
+<li> [x] Mean: 3.62, SD: 0.16
 <li> Mean: 3.63, SD: 0.09
 <li> Mean: 3.63, SD: 0.91
 </ol>
 
 ```{r Q9}
 # type your code for Question 9 here, and Knit
+lambda <- 3
+sigma_sq <- 1
+b <- lambda/sigma_sq
+a <- lambda * b
+
+ames_train %>% filter(area > 2000) %>% summarise(sum=sum(Bedroom.AbvGr)) -> sum_x
+ames_train %>% filter(area > 2000) %>% count() -> n
+a_star <- a + sum_x
+b_star <- b + n
+lambda_star <- a_star / b_star
+sigma_star <- sqrt(a_star / b_star^2)
+print(paste("Mean: ",lambda_star,", SD: ",sigma_star))
 
 ```
 
@@ -239,11 +268,20 @@ Elicit prior beliefs about a parameter in terms of a Beta, Gamma, or Normal dist
 <li> They had abnormal sale conditions.
 <li> They have only two bedrooms.
 <li> They have an overall quality of less than 3.
-<li> They were built before 1930.
+<li> [x] They were built before 1930.
 </ol>
 
 ```{r Q10}
 # type your code for Question 10 here, and Knit
+fit <- lm(log(price)~log(area), data=ames_train)
+ggplot(ames_train, aes(x=log(area),y=log(price))) + geom_point() + stat_smooth(method = "lm", se = FALSE)
+
+ames_train$stdres <- stdres(fit)
+ames_train$stdres_abs <- abs(stdres(fit))
+ames_train$stdres_gt3 <- abs(stdres(fit)) > 3
+ames_train[which(ames_train$stdres_gt3 == TRUE), c('Bedroom.AbvGr','Overall.Qual', 'Year.Built','Sale.Condition','stdres_abs')] %>% arrange(desc(stdres_abs)) %>% head(n=3)
+
+plot
 
 ```
 
@@ -259,12 +297,12 @@ Identify outliers and high leverage points in a linear model.
 <li> `price` is right-skewed.
 <li> `price` cannot take on negative values.
 <li> `price` can only take on integer values.  
-<li> Both a and b.
+<li> [x] Both a and b.
 </ol>
 
 ```{r Q11}
 # type your code for Question 11 here, and Knit
-
+ggplot(ames_train, aes(x=price)) +  geom_histogram()
 ```
 
 
@@ -279,12 +317,12 @@ Identify the assumptions of linear regression and assess when a model may need t
 <li> 0
 <li> 1
 <li> 2 
-<li> 3
+<li> [x] 3
 </ol>
 
 ```{r Q12}
 # type your code for Question 12 here, and Knit
-
+ames_train %>% group_by(Neighborhood) %>% summarise(proportion=mean(Bldg.Type == "1Fam")) %>% filter(proportion==1)
 ```
 
 \fb{Use either frequency tables for each neighborhood or the dplyr command `group_by` followed by `summarise(mean(Bldg.Type == "1Fam"))`
@@ -295,13 +333,18 @@ Use contingency tables and segmented bar plots or mosaic plots to assess the rel
 
 13. Using color, different plotting symbols, conditioning plots, etc., does there appear to be an association between $\log$(`area`) and the number of bedrooms above ground (`Bedroom.AbvGr`)? 
 <ol> 
-<li> Yes
+<li> [x] Yes
 <li> No
 </ol>
 
 ```{r Q13}
 # type your code for Question 13 here, and Knit
+ggplot (ames_train, aes(x=Bedroom.AbvGr, y=log(area))) + geom_jitter() + stat_smooth(method = "lm", se = FALSE)
 
+cor(ames_train$Bedroom.AbvGr, log(ames_train$area))
+
+fit <- lm(formula = log(area) ~ Bedroom.AbvGr, data = ames_train)
+summary(fit)
 ```
 
 \fb{Find the correlation between the two variables.  Does there seem to be an association between the two?  Try plotting the relationship.
@@ -313,14 +356,14 @@ Use scatterplots and other graphical devices to describe the relationship betwee
 14. Of the people who have unfinished basements, what is the average square footage of the unfinished basement?
 <ol> 
 <li> 590.36
-<li> 595.25
+<li> [x] 595.25
 <li> 614.37
 <li> 681.94
 </ol>
 
 ```{r Q14}
 # type your code for Question 14 here, and Knit
-
+ames_train %>% filter(!is.na(Bsmt.Unf.SF), Bsmt.Unf.SF>0) %>% summarise(mean=mean(Bsmt.Unf.SF))
 ```
 
 \fb{Remove all `NA` observations for the square footage of the unfinished basement and then find the mean of the remaining observations.
