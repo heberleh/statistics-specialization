@@ -53,8 +53,8 @@ Use frequency tables and bar plots to describe the distribution of a variable.
 2. How many categorical variables are coded in R as having type `int`?  Change them to factors when conducting your analysis.
 <ol>
 <li> 0
-<li> [x] 1
-<li> 2
+<li> [false] 1
+<li> [x] 2
 <li> 3
 </ol>
 
@@ -294,10 +294,10 @@ Identify outliers and high leverage points in a linear model.
 
 11. Which of the following are reasons to log-transform `price` if used as a dependent variable in a linear regression?
 <ol> 
-<li> `price` is right-skewed.
+<li> [x] `price` is right-skewed.
 <li> `price` cannot take on negative values.
 <li> `price` can only take on integer values.  
-<li> [x] Both a and b.
+<li> [false] Both a and b.
 </ol>
 
 ```{r Q11}
