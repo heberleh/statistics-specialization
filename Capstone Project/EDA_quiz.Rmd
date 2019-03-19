@@ -14,6 +14,7 @@ First, let us load the data:
 
 ```{r load}
 load("ames_train.Rdata")
+#https://github.com/StatsWithR/statsr/blob/master/R/ames.R
 
 ```
 
