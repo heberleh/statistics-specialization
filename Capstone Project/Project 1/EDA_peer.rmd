@@ -112,13 +112,27 @@ We want to predict the natural log of the home prices. Candidate explanatory var
 
 ```{r Q4}
 # type your code for Question 4 here, and Knit
-fit <- lm(log(price) ~ Lot.Area + Land.Slope + Year.Built + Year.Remod.Add + Bedroom.AbvGr, ames_train)
+
+#ames_train <- na.omit(ames_train)
+ames_train$price_log <- log(ames_train$price)
+
+fit1 <- lm(price_log ~ Lot.Area + Land.Slope + Year.Built + Year.Remod.Add + Bedroom.AbvGr, ames_train, na.action = na.omit)
 
 # To use BIC in the stepAIC, change "k=2" to "k=log(n)"
-fit <- stepAIC(fit, k=log(nrow(ames_train)), trace = FALSE)
-fit$anova
+fit2 <- stepAIC(fit1, k=log(nrow(ames_train)), trace = FALSE)
+anova(fit2)
 # plot(fit)
-summary(fit)
+summary(fit2)
+BIC(fit2)
+
+
+confint(fit2)
+
+library(sjPlot)
+
+plot_model(fit2, vline.color = "red", sort.est = TRUE, show.values = TRUE, value.offset = .5)
+
+
 ```
 
 * * *
@@ -137,7 +151,7 @@ In our case, we have as result:
   log(price) ~ Lot.Area + Land.Slope + Year.Built + Year.Remod.Add + 
     Bedroom.AbvGr
 
-That is, the best model for determining log(price) is the same full model.
+That is, the best model for determining log(price) is the same full model, with Multiple R-squared equals to 0.5625 and	Adjusted R-squared equals to 0.5598. **Note:** By means of Bayeasian Approach, we also confirmed that all mentioned variables should be used.
 
 
 * * *
@@ -150,13 +164,37 @@ Which home has the largest squared residual in the previous analysis (Question 4
 ```{r Q5}
 # type your code for Question 5 here, and Knit
 
+# Standardize residuals
+ames_train$stdres <- stdres(fit2)
+ames_train$stdres_abs <- abs(stdres(fit2))
+
+# The largest residual or squared residual is by definition the same:
+ames_train$stdres_gt3 <- abs(stdres(fit2)) > 3  #getting what is above 3 std 
+ames_train$predicted <-  predict(fit2)
+ames_train$squared_res <-  residuals(fit2)^2
+
+ames_train[which(ames_train$stdres_gt3 == TRUE), c('PID','Lot.Area','Land.Slope', 'Year.Built','Year.Remod.Add','Bedroom.AbvGr', 'stdres_abs', 'stdres', 'squared_res', 'price', 'price_log', 'predicted')] %>% arrange(desc(stdres_abs)) %>% head(n=5)
+
+plot(residuals(fit2), main="Residuals",pch=20)
+abline(0,0, lwd=2, col="red")
+qqnorm(residuals(fit2))
+qqline(residuals(fit2))
+
+#ames_train[which(ames_train$PID == 902207130),]
+#ames_train[which(ames_train$stdres_gt3 == TRUE), c('Bedroom.AbvGr','Overall.Qual', 'Year.Built','Sale.Condition','stdres_abs')] %>% arrange(desc(stdres_abs)) %>% head(n=3)
 ```
 
 * * *
 
-NOTE: Write your written response to Question 5 here.  Delete this note before you submit your work.
+The house with the largest squared residual is the one with PID 902207130. This house has the residual over 3 times the Standard Deviation and, hence, can be considered an outlier. In fact, this house has the smallest price of 12,789, being the second smallest price of 30,900. By the price we can see that this must be a house of bad quality. In fact, the quality has score equals to 2, very low.
 
-Must identify the home with the largest squared residual, specify the correct factors that contribute to the high squared residual and correctly explain why those factors impacted the squared residual.
+Hence, factors that are not in the model fit2 also contributed to the price to be very far from the mean and median, what makes it to have the largest squared residual. Examples of factors are:
+* the age of the house, since it is a very old house (**Year built**: 1923);
+* the year when it was Remodeled (**Remodel date**: 1970);
+* the quality (**Quality**: 2);
+* and others.
+
+There are attributes in our model that makes the fitted curve to be far from the outlier value, such as the Bedroom.AbvGr, Land.Slope and Lot.Area. These attributes, when "low/not that good", they tend to have a price near to 30,000, not near to 12,000. Therefore, the model created brings this largest residual to this case which is very different from most of the houses in very heavy attributes such as the year and house quality.
 
 
 * * *
@@ -168,11 +206,30 @@ Use the same model selection method you chose in Question 4 to again find the be
 
 ```{r Q6}
 # type your code for Question 6 here, and Knit
+fit3 <- lm(price_log ~ log(Lot.Area) + Land.Slope + Year.Built + Year.Remod.Add + Bedroom.AbvGr, ames_train, na.action = na.omit)
+
+# To use BIC in the stepAIC, change "k=2" to "k=log(n)"
+fit4 <- stepAIC(fit3, k=log(nrow(ames_train)), trace = FALSE)
+anova(fit4)
+# plot(fit)
+summary(fit4)
+BIC(fit4)
+
+
+confint(fit4)
+
+library(sjPlot)
+
+plot_model(fit4, vline.color = "red", sort.est = TRUE, show.values = TRUE, value.offset = .5)
 
 ```
 
 * * *
-Must correctly state whether or not one arrives at the same set of predictors using log(Lot.Area) as with Lot.Area, in the multiple regression model created using the chosen model selection method.
+
+By using log(Lot.Area), the stepAIC considering the BIC gives us a new model with less factors. The new selected model removed the factor Land.Slope:
+* price_log ~ log(Lot.Area) + Year.Built + Year.Remod.Add + Bedroom.AbvGr
+
+While the BIC is better than the full model, the Adjusted R-squared also is better: increased to 0.6015.
 
 #
 
@@ -180,14 +237,33 @@ Do you think it is better to log transform Lot.Area, in terms of assumptions for
 
 ```{r Q7}
 # type your code for Question 7 here, and Knit
+y2 <- data.frame(Observed = ames_train$price_log, Predicted = fitted(fit2))
+p2 <- ggplot(y2, aes(x=Observed, y=Predicted)) + geom_point() + stat_smooth(method = "lm", col = "red") + ggtitle("Lot.Area")
+BIC(fit2)
+
+y4 <- data.frame(Observed = ames_train$price_log, Predicted = fitted(fit4))
+p4 <- ggplot(y4, aes(x=Observed, y=Predicted)) + geom_point() + stat_smooth(method = "lm", col = "red") + ggtitle("Log(Lot.Area)")
+BIC(fit4)
+
+grid.arrange(
+  p2, p4,
+  nrow = 1,
+  top = "Observed vs. Predicted",
+  bottom = textGrob(
+    "",
+    gp = gpar(fontface = 3, fontsize = 9),
+    hjust = 1,
+    x = 1
+  )
+)
 
 ```
 
 * * *
 
-NOTE: Write your written response to Question 7 here.  Delete this note before you submit your work.
+By analysing the two graphics, we can see that log-transforming the Lot.Area gives us a better model fit since the dots in the graphic on the right are closer and better distributed along the fitted line.
 
-Must state whether or not log transformation of Lot.Area helps the multiple regression model. Must include two appropriate graphs, and include an explanation of the first answer that references the graphs (in other words, explain how the graphs support the answer)
+By log-transforming Lot.Area, we have improved the Adjusted R-squared, making it 0.6015 instead of 0.5598.
 
 * * *
 ###
