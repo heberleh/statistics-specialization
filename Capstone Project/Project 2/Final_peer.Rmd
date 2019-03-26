@@ -1,0 +1,513 @@
+---
+title: "Peer Assessment II"
+output:
+  html_document: 
+    pandoc_args: [
+      "--number-sections",
+    ]
+---
+
+# Background
+
+As a statistical consultant working for a real estate investment firm, your task is to develop a model to predict the selling price of a given home in Ames, Iowa. Your employer hopes to use this information to help assess whether the asking price of a house is higher or lower than the true value of the house. If the home is undervalued, it may be a good investment for the firm.
+
+# Training Data and relevant packages
+
+In order to better assess the quality of the model you will produce, the data have been randomly divided into three separate pieces: a training data set, a testing data set, and a validation data set. For now we will load the training data set, the others will be loaded and used later.
+
+```{r load, message = FALSE}
+load("ames_train.Rdata")
+```
+
+Use the code block below to load any necessary packages
+
+```{r packages, message = FALSE}
+library(statsr)
+library(ggplot2)
+library(dplyr)
+library(statsr)
+library(BAS)
+library(GGally)
+library("gplots")
+library(gridExtra)
+library(grid)
+library(plotmo)
+library(MASS)
+library(tidyverse)
+library(broom)
+library(naniar)
+library(visdat)
+library("cowplot")
+library(tidyverse)
+library(caret)
+
+
+options(width=600)
+```
+
+## Part 1 - Exploratory Data Analysis (EDA)
+
+When you first get your data, it's very tempting to immediately begin fitting models and assessing how they perform.  However, before you begin modeling, it's absolutely essential to explore the structure of the data and the relationships between the variables in the data set.
+
+Do a detailed EDA of the ames_train data set, to learn about the structure of the data and the relationships between the variables in the data set (refer to Introduction to Probability and Data, Week 2, for a reminder about EDA if needed). Your EDA should involve creating and reviewing many plots/graphs and considering the patterns and relationships you see. 
+
+After you have explored completely, submit the three graphs/plots that you found most informative during your EDA process, and briefly explain what you learned from each (why you found each informative).
+
+* * *
+
+### Filtering by Normal Sale Condition
+
+Since we want to compare the price of houses to its sale price under normal condition, we are going to subset the training data:
+```{r subset, message = FALSE}
+# Backup complete dataset
+ames_train_full <- data.frame(ames_train)
+
+# Filter Normal Sale Condition
+ames_train %>%
+  filter(Sale.Condition == "Normal") -> ames_train
+
+# Remove Sale Condition factor
+ames_train <- dplyr::select(ames_train, -Sale.Condition)
+```
+
+Other variables are not associated to the houses' value, and are also removed:
+```{r}
+ames_train <- dplyr::select(ames_train, -Mo.Sold, -Yr.Sold, -Sale.Type, -Misc.Val, -Misc.Feature)
+
+```
+
+
+### **Figure 1**
+**Comparing the distibution of price by neighborhood before and after filtering by Normal Sale Condition**
+
+One important plot we must show is how the price is distributed among neighborhoods. By this plot, we can see the difference of prices in each neighborhood, as well as how the price varies among them.
+
+We are going to use this plot to check how the price distribution among Neighborhood changed after filtering by Normal Sale Condition:
+
+```{r graph1}
+# Boxplot before filtering
+ggplot(ames_train_full, aes(x=reorder(Neighborhood, -price, FUN = median), y=price)) + geom_boxplot()  + labs(title = "(A) All Sale Condition", caption = "Ordered by Median.") + xlab("Neighborhood") + ylab("Price") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# Boxplot after filtering
+ggplot(ames_train, aes(x=reorder(Neighborhood, -price, FUN = median), y=price)) + geom_boxplot()  + labs(title = "(B) Normal Sale Condition", caption = "Ordered by Median.") + xlab("Neighborhood") + ylab("Price") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+We can see that the **order of the neighborhoods with the largest prices changed**. For instance, in Figure 1 (B) we see that StoneBr is now the top-4 most expensive neighborhood, while in Figure 1 (A) it is the top-1. **The variance of some neighborhoods also changed**. For instance, before the filter (A), the variance of StoneBr was similar to the one found in NridgHt; after the filter (B), we see that the boxplot is shorter. 
+
+Given that the filter altered the order and variance of neighborhoods' price, **the above comparison makes it even more important to consider only the Normal Sale Condition** in our analysis, once our purpose is to helping to assess whether the asking price of a house is higher or lower than the true value of the house.
+
+### **Figure 2**    
+**Understanding variables types and discarting NAs**
+
+It is important to understand the type of our data and to analyse the number of Missing Values (NAs). In this figure, we visualize in (A) the main category and in (B) the variables missing values, ordered by percentage.
+
+```{r graph2}
+
+vis_dat(ames_train) + theme(axis.text.x = element_text(angle = 90, size = 6))+ labs(title = "(A) Data types", caption = "Ordered by Type.")
+
+vis_miss(ames_train, sort_miss = TRUE) + theme(axis.text.x = element_text(angle = 90, size = 6))+ labs(title = "(B) Missing Values", caption = "Ordered by number of missing values.")
+
+
+```
+
+
+In Figure 2 (A), we can see that half of our data is categorical and half is numerical. In Figure 2 (B), we can see that there are 3 to 5 variables with a large number of missing values. **We chose to discart the variables Pool.QC, Alley and Fence  because they have more than 50% of missing values each**. Also, the fact that a house has pool or not is already described by the Pool.Area.
+```{r}
+# Removing variables that has more than 50% of NAs
+lowNAs <- lapply( ames_train, function(x) sum(is.na(x)) / length(x) ) < 0.5
+ames_train <- ames_train[lowNAs]
+```
+
+The variable **Fireplace.Qu** was also removed, due to large number of NAs and because there is another variable that indicates the number of Fireplaces that does not contain NAs.
+```{r}
+# Removing Fireplace.Qu
+ames_train <- dplyr::select(ames_train, -Fireplace.Qu)
+```
+
+The variable **Lot.Frontage** also contains many NAs. This variable relates to the **Linear feet of street connected to property** and the minimun value is 21. Therefore, we will set all NAs to 0, supposing they filled with NAs when there was no connection between the street connected to property.  
+
+```{r}
+# Setting Lot.Frontage NAs to Zero
+summary(ames_train$Lot.Frontage)
+ames_train$Lot.Frontage[is.na(ames_train$Lot.Frontage)] <- 0
+ames_train$Lot.Frontage <- as.integer(ames_train$Lot.Frontage)
+summary(ames_train$Lot.Frontage)
+```
+
+Some of the variables related to Garage and Basement (variables that start with the words Garage and Bsmt) were also removed. We kept their versions without NAs. For instance, **we kept Garage.Cars and Garage.Area**. Similar for Basement.
+
+```{r}
+ames_train <- dplyr::select(ames_train, -Garage.Qual, -Garage.Cond, -Garage.Type, -Garage.Yr.Blt, -Garage.Finish, -Bsmt.Cond, -Bsmt.Qual, -Bsmt.Exposure, -BsmtFin.Type.1, -BsmtFin.Type.2, -BsmtFin.SF.2)
+```
+
+Finally, we have only the variable **Mas.Vnr.Area** containing missing values. In this case, if there was no area, it should be set to value 0.0. In fact, there are observations with 0.0 and, therefore, we do not know what happened to the 4 observations with NAs for this variable. We decided to remove the 4 observations.
+```{r}
+summary(ames_train$Mas.Vnr.Area)
+
+ames_train <- na.omit(ames_train)
+
+vis_dat(ames_train) + theme(axis.text.x = element_text(angle = 90, size = 6))+ labs(title = "(C) Data without Missing Values", caption = "Ordered by Type.")
+
+```
+
+Figure 2 (C) shows our final train data set. In total, we have reduced our data from 1,000 to 834 by filtering the Normal Sale Condition and from 834 to 830 by removing observations with NAs in the variable Mas.Vnr.Area.
+
+### **Figure 3**    
+**Relatioship between variables**
+
+Here we want to analyse the relationship between variables/factors.
+
+First, we found out that the variable Utilities contains only one value in all observations; then, we found out that the variable Low.Qual.Fin.SF has abdormal distribution; hence, we removed these variables. By running a Linear Regression with all variables, we found out that many variables resulted in extremely large p-values. We removed these variables too.
+
+```{r graph3}
+ames_train <- dplyr::select(ames_train, -Utilities, -Low.Qual.Fin.SF, -Lot.Shape, -Land.Contour, -Lot.Config, -House.Style, -Roof.Style, -Mas.Vnr.Type, -Electrical, -Full.Bath, -Half.Bath, -Bedroom.AbvGr, -TotRms.AbvGrd, -Paved.Drive)
+```
+
+We compared many variables to see the relationship between them. Here we show some of the relationships among numerical variables that we considered important and that had small p-values in the full linear model created in the step before. 
+
+```{r}
+#ggpairs(dplyr::select_if(ames_train, is.numeric))
+train_middle <- dplyr::select(ames_train, price, area, Lot.Area, Overall.Qual, Overall.Cond, Year.Built, Year.Remod.Add, Total.Bsmt.SF, Fireplaces, Open.Porch.SF)
+ggpairs(train_middle, progress = FALSE,  
+        upper = list(
+            continuous = wrap("cor", size = 3, alignPercent = 1)
+        )) + theme(text = element_text(size = 6), axis.text.y= element_text(angle = 0, size = 6) , axis.text.x = element_text(angle = 90, size = 6))+ labs(title = "Variables relationship")
+# 
+# 
+# library(corrplot)
+# res <- cor(train_middle)
+# 
+# corrplot(res, type = "upper", order = "hclust", tl.col = "black", tl.srt = 45) + 
+#   labs(title = "Correlation between numerical variables with small p-value")
+```
+
+As we can see in Figure 3, **the numerical variables do not correlate much between each other**, except with price. **Price is highly correlated with area, Overall.Qual and Total.Bsmt.SF**. Overall.Qual is somehow slightly correlated to Year.Built and to Year.Remod.Add, which makes sense. We will keep this information in mind to possibly decide to remove some of those. We investigate more about Colinearity in further analysis.
+
+
+
+
+
+* * *
+
+## Part 2 - Development and assessment of an initial model, following a semi-guided process of analysis
+
+### Section 2.1 An Initial Model
+In building a model, it is often useful to start by creating a simple, intuitive initial model based on the results of the exploratory data analysis. (Note: The goal at this stage is **not** to identify the "best" possible model but rather to choose a reasonable and understandable starting point. Later you will expand and revise this model to create your final model.
+
+Based on your EDA, select *at most* 10 predictor variables from “ames_train” and create a linear model for `price` (or a transformed version of price) using those variables. Provide the *R code* and the *summary output table* for your model, a *brief justification* for the variables you have chosen, and a *brief discussion* of the model results in context (focused on the variables that appear to be important predictors and how they relate to sales price).
+
+* * *
+
+To continue with our analysis, we analysed the relationship of variables with Price to check if they look linear. We tested them by log-transforming both the dependent and independent variables, only the dependent and only the independent. In fact, by log-transforming Price, we ended up in general with better plots, that looked more linear and resulted in higher correlation. Therefore, we will use log(price) in our initial model.
+```{r}
+ggplot(data = ames_train, aes(x=price, y=Overall.Qual))  + geom_point() + stat_smooth(method = "lm", col = "red") + ggtitle("Price x Overall.Qual")
+ggplot(data = ames_train, aes(x=log(price), y=Overall.Qual))  + geom_point() + stat_smooth(method = "lm", col = "red") + ggtitle("Log(Price) x Overall.Qual")
+
+cor(ames_train$price, ames_train$Overall.Qual)
+cor(log(ames_train$price), ames_train$Overall.Qual)
+```
+
+We chose the initial dependent variables based on facts like *not having a large p-value* in the full model (all variables included) tested before, on **having high correlation** with the dependent variable or based on our experience when trying to find a house to rent.
+
+In general, variables linked to Size, Place, Quality and Age are very intuitive when trying to define the price of a house. Therefore, we included:
+ 1. area (Size)
+ 2. Lot.Area (Size)
+ 3. Total.Bsmt.SF (Size)
+ 4. Neighborhood (Place)
+ 5. Land.Slope (Place)
+ 6. Overall.Cond (Quality)
+ 7. Overall.Qual (Quality)
+ 8. Kitchen.Qual (Quality)
+ 9. Year.Built (Age)
+ 10. Year.Remod.Add (Age)
+ 
+ As we saw in the EDA, **the price is highly correlated to variables that indicate Area and Quality** as well. We also saw that the **price varies among neighborhoods**. The **age variables are clearly related to the price, once new houses are more expensive than old ones**.
+ 
+We created the Initial Model with the 10 variables and analysed the significance of each factor. We concluded that **many neighborhoods do not have significant impact in the price** and **somehow caused MULTICOLINEARITY in the model, suggesting to remove the variable Year.Built**. This analysis was performed using the **generalized variance inflation** used to check for multicolinearity.
+```{r fit_model}
+#fit <- lm(log(price) ~ area + MS.Zoning + Lot.Area + Bldg.Type + Neighborhood + Overall.Qual + Overall.Cond + Land.Slope + Condition.1 + Condition.2 + Year.Built + Year.Remod.Add + Roof.Matl + Total.Bsmt.SF + Heating + Central.Air + Bsmt.Full.Bath + Kitchen.Qual + Fireplaces + Open.Porch.SF + Screen.Porch, ames_train)
+ames_train$Neighborhood_simplified <- as.character(ames_train$Neighborhood)
+ames_train$Neighborhood_simplified[!(ames_train$Neighborhood %in% c("BrDale", "Crawfor", "Edwards", "Greens", "GrnHill", "IDOTRR", "MeadowV", "NWAmes", "OldTown", "SawyerW"))] <- "LowImpact"
+ames_train$Neighborhood_simplified <- as.factor(ames_train$Neighborhood_simplified)
+
+ames_train$Neighborhood_very_simplified <- as.character(ames_train$Neighborhood)
+ames_train$Neighborhood_very_simplified[!(ames_train$Neighborhood %in% c("BrDale", "Crawfor", "Greens", "GrnHill"))] <- "LowImpact"
+ames_train$Neighborhood_very_simplified <- as.factor(ames_train$Neighborhood_very_simplified)
+
+fit_init1 <- lm(log(price) ~ area + log(Lot.Area) + Neighborhood + Overall.Qual + Overall.Cond + Land.Slope + Year.Built + Year.Remod.Add + Kitchen.Qual + Total.Bsmt.SF, ames_train)
+
+fit_init2 <- lm(log(price) ~ area + log(Lot.Area) + Neighborhood_simplified + Overall.Qual + Overall.Cond + Land.Slope + Year.Built + Year.Remod.Add + Kitchen.Qual + Total.Bsmt.SF, ames_train)
+
+fit_init3 <- lm(log(price) ~ area + log(Lot.Area) + Neighborhood_very_simplified + Overall.Qual + Overall.Cond + Land.Slope + Year.Built + Year.Remod.Add + Kitchen.Qual + Total.Bsmt.SF, ames_train)
+
+data.frame(AllNeighbors=summary(fit_init1)$adj.r.squared, Simplified=summary(fit_init2)$adj.r.squared, VerySimplified=summary(fit_init3)$adj.r.squared)
+
+```
+With the **table above**, we can see that using all Neighbors or using other two versions of simplification resulted in very similar **Adjusted R Squared**. The simplification was created by removing non-significant Neighborhoods from the models. With this procedure, we end up with a model much more parsimoneous and with less non-significant factors. In future Model Selection, we may test both approaches: simplifying and not simplifying the variable Neighborhood.
+
+In the table bellow we can see that in model fit_init1 the **GVIF^(1/(2*Df))** is > 2.56, suggesting that Year.Built should be removed from the model (GVIF^(1/(2*Df)) > 2 is a common threshold).
+On the other hand, for model fit_init3 (very simplified), all the **GVIF^(1/(2*Df))** values are < 1.62.
+```{r}
+library(car)
+car::vif(fit_init1)
+car::vif(fit_init3)
+```
+
+Since Year.Built is an attribute that we consider of great importance to define the price of a house, we will continue with the model **fit_init3** as our **Initial Model**.
+
+```{r}
+fit_init <- fit_init3
+summary(fit_init)
+```
+
+
+With the following plots, we checked the **linearity** by checking that the values in the Residuals vs Fitted plot are not very large and the **homoscedasticity** by checking that the residuals are equally spread around the y=0 line and that we barely see a patern in the plot Scale-Location. The **normality** also holds once the Normal Q-Q plot is close to a 45º line.
+```{r, message=FALSE, warning=FALSE}
+par(mfrow = c(2, 2))
+plot(fit_init, which=1:4)
+```
+
+The Cook's distance plot revealed that **observations number 209, 610 and 756 should be investigated** since they are much larger than the others. We removed the observation 610 from the train set and created a new model fit_init4 to be our final model fit_init. The reason is justified by the fact that in all plots it is coming out as a strange point, confirming the hyphotesis of the Cook's distance plot. The result was a **much better Normal Q-Q plot**, more close to 45º. **The adjusted R Squared also had a small improvement**.
+
+```{r, message=FALSE, warning=FALSE}
+ames_train <- ames_train[-c(610),] #, 422, 62, 209, 756
+fit_init4 <- lm(log(price) ~ area + log(Lot.Area) + Neighborhood_very_simplified + Overall.Qual + Overall.Cond + Land.Slope + Year.Built + Year.Remod.Add + Kitchen.Qual + Total.Bsmt.SF, ames_train)
+
+data.frame(
+  AllNeighbors=summary(fit_init1)$adj.r.squared, 
+  Simplified=summary(fit_init2)$adj.r.squared, 
+  VerySimplified=summary(fit_init3)$adj.r.squared,
+  VerySimplifiedObsRemoved=summary(fit_init4)$adj.r.squared
+  )
+par(mfrow = c(2, 2))
+plot(fit_init4, which=1:4)
+
+fit_init <- fit_init4
+
+
+```
+
+
+* * *
+
+### Section 2.2 Model Selection
+
+Now either using `BAS` another stepwise selection procedure choose the "best" model you can, using your initial model as your starting point. Try at least two different model selection methods and compare their results. Do they both arrive at the same model or do they disagree? What do you think this means?
+
+* * *
+
+NOTE: Write your written response to section 2.2 here. Delete this note before you submit your work.
+
+Model selection: must include a discussion
+
+```{r model_select}
+```
+
+* * *
+
+### Section 2.3 Initial Model Residuals
+One way to assess the performance of a model is to examine the model's residuals. In the space below, create a residual plot for your preferred model from above and use it to assess whether your model appears to fit the data well. Comment on any interesting structure in the residual plot (trend, outliers, etc.) and briefly discuss potential implications it may have for your model and inference / prediction you might produce.
+
+* * *
+
+NOTE: Write your written response to section 2.3 here. Delete this note before you submit your work.
+
+Residual: must include a residual plot and a discussion
+```{r model_resid}
+```
+
+* * *
+
+### Section 2.4 Initial Model RMSE
+
+You can calculate it directly based on the model output. Be specific about the units of your RMSE (depending on whether you transformed your response variable). The value you report will be more meaningful if it is in the original units (dollars).
+
+* * *
+
+NOTE: Write your written response to section 2.4 here. Delete this note before you submit your work.
+
+RMSE: must include an RMSE and an explanation
+
+```{r model_rmse}
+```
+
+* * *
+
+### Section 2.5 Overfitting 
+
+The process of building a model generally involves starting with an initial model (as you have done above), identifying its shortcomings, and adapting the model accordingly. This process may be repeated several times until the model fits the data reasonably well. However, the model may do well on training data but perform poorly out-of-sample (meaning, on a dataset other than the original training data) because the model is overly-tuned to specifically fit the training data. This is called “overfitting.” To determine whether overfitting is occurring on a model, compare the performance of a model on both in-sample and out-of-sample data sets. To look at performance of your initial model on out-of-sample data, you will use the data set `ames_test`.
+
+```{r loadtest, message = FALSE}
+load("ames_test.Rdata")
+```
+
+Use your model from above to generate predictions for the housing prices in the test data set.  Are the predictions significantly more accurate (compared to the actual sales prices) for the training data than the test data?  Why or why not? Briefly explain how you determined that (what steps or processes did you use)?
+
+* * *
+
+NOTE: Write your written response to section 2.5 here. Delete this note before you submit your work.
+
+Model testing: must include an explanation 
+
+
+```{r initmodel_test}
+```
+
+* * *
+
+**Note to the learner:** If in real-life practice this out-of-sample analysis shows evidence that the training data fits your model a lot better than the test data, it is probably a good idea to go back and revise the model (usually by simplifying the model) to reduce this overfitting. For simplicity, we do not ask you to do this on the assignment, however.
+
+## Part 3 Development of a Final Model
+
+Now that you have developed an initial model to use as a baseline, create a final model with *at most* 20 variables to predict housing prices in Ames, IA, selecting from the full array of variables in the dataset and using any of the tools that we introduced in this specialization.  
+
+Carefully document the process that you used to come up with your final model, so that you can answer the questions below.
+
+### Section 3.1 Final Model
+
+Provide the summary table for your model.
+
+
+* * *
+
+NOTE: Write your written response to section 3.1 here. Delete this note before you submit your work.
+
+Final model: must include a summary table
+
+```{r model_playground}
+```
+
+* * *
+
+### Section 3.2 Transformation
+
+Did you decide to transform any variables?  Why or why not? Explain in a few sentences.
+
+* * *
+
+NOTE: Write your written response to section 3.2 here. Delete this note before you submit your work.
+
+Variable: must include an explanation
+
+```{r model_assess}
+```
+
+* * *
+
+### Section 3.3 Variable Interaction
+
+Did you decide to include any variable interactions? Why or why not? Explain in a few sentences.
+
+* * *
+
+NOTE: Write your written response to section 3.3 here. Delete this note before you submit your work.
+
+Variable interaction: must include an explanation
+
+```{r model_inter}
+```
+
+* * *
+
+### Section 3.4 Variable Selection
+
+What method did you use to select the variables you included? Why did you select the method you used? Explain in a few sentences.
+
+* * *
+
+NOTE: Write your written response to section 3.4 here. Delete this note before you submit your work.
+
+Variable selection: must use appropriate method and include an explanation
+
+```{r model_select}
+```
+
+* * *
+
+### Section 3.5 Model Testing
+
+How did testing the model on out-of-sample data affect whether or how you changed your model? Explain in a few sentences.
+
+* * *
+
+NOTE: Write your written response to section 3.5 here. Delete this note before you submit your work.
+
+Residual: must include a residual plot and a discussion
+
+```{r model_testing}
+```
+
+* * *
+
+## Part 4 Final Model Assessment
+
+### Section 4.1 Final Model Residual
+
+For your final model, create and briefly interpret an informative plot of the residuals.
+
+* * *
+
+NOTE: Write your written response to section 4.1 here. Delete this note before you submit your work.
+
+* * *
+
+### Section 4.2 Final Model RMSE
+
+For your final model, calculate and briefly comment on the RMSE.
+
+* * *
+
+NOTE: Write your written response to section 4.2 here. Delete this note before you submit your work.
+
+RMSE: must include an RMSE and an explanation
+
+* * *
+
+### Section 4.3 Final Model Evaluation
+
+What are some strengths and weaknesses of your model?
+
+* * *
+
+NOTE: Write your written response to section 4.3 here. Delete this note before you submit your work.
+
+* * *
+
+### Section 4.4 Final Model Validation
+
+Testing your final model on a separate, validation data set is a great way to determine how your model will perform in real-life practice. 
+
+You will use the “ames_validation” dataset to do some additional assessment of your final model. Discuss your findings, be sure to mention:
+* What is the RMSE of your final model when applied to the validation data?  
+* How does this value compare to that of the training data and/or testing data?
+* What percentage of the 95% predictive confidence (or credible) intervals contain the true price of the house in the validation data set?  
+* From this result, does your final model properly reflect uncertainty?
+
+```{r loadvalidation, message = FALSE}
+load("ames_validation.Rdata")
+```
+
+* * *
+
+NOTE: Write your written response to section 4.4 here. Delete this note before you submit your work.
+
+Model evaluation: must include an evaluation discussion
+Model validation: must include a discussion
+Model result: must include undervalued and overvalued houses
+```{r model_validate}
+```
+
+* * *
+
+## Part 5 Conclusion
+
+Provide a brief summary of your results, and a brief discussion of what you have learned about the data and your model. 
+
+* * *
+
+NOTE: Write your written response to part 5 here. Delete this note before you submit your work.
+
+Conclusion (10 points): must include a summary of results and a discussion of things learned
+
+* * *
