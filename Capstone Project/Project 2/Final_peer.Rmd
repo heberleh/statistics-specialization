@@ -248,7 +248,7 @@ With the **table above**, we can see that using all Neighbors or using other two
 
 In the table bellow we can see that in model fit_init1 the **GVIF^(1/(2*Df))** is > 2.56, suggesting that Year.Built should be removed from the model (GVIF^(1/(2*Df)) > 2 is a common threshold).
 On the other hand, for model fit_init3 (very simplified), all the **GVIF^(1/(2*Df))** values are < 1.62.
-```{r}
+```{r, message=FALSE}
 library(car)
 car::vif(fit_init1)
 car::vif(fit_init3)
@@ -256,14 +256,10 @@ car::vif(fit_init3)
 
 Since Year.Built is an attribute that we consider of great importance to define the price of a house, we will continue with the model **fit_init3** as our **Initial Model**.
 
-```{r}
-fit_init <- fit_init3
-summary(fit_init)
-```
-
 
 With the following plots, we checked the **linearity** by checking that the values in the Residuals vs Fitted plot are not very large and the **homoscedasticity** by checking that the residuals are equally spread around the y=0 line and that we barely see a patern in the plot Scale-Location. The **normality** also holds once the Normal Q-Q plot is close to a 45º line.
 ```{r, message=FALSE, warning=FALSE}
+fit_init <- fit_init3
 par(mfrow = c(2, 2))
 plot(fit_init, which=1:4)
 ```
@@ -287,6 +283,36 @@ fit_init <- fit_init4
 
 
 ```
+```{r} 
+summary(fit_init)
+```
+
+By the variables' coeficients from the model and p-values, we can see that two factors that influentiate a lot are the ones that tell us if the houses are in the GrnHill and in the Greens neighborhoods; followed by Kitchen quality (FA and TA) and Overall Quality; all of them with a small p-value (p < 0.01).
+
+Bellow is the table indicating the % the price is increased/decreased on average when the house is in one of those two neighborhoods, has Ta or Fa as Kitchen Quality, and the percentage the price increases by unit of Overall Quality (when the respective variable is varying and the others are hold constant).
+```{r}
+# Increase when house is in GrnHill
+a1 <- round((exp(0.5118732876)-1)*100, digits = 1)
+
+# Increase when house is in Greens
+a2 <- round((exp(0.2459600565)-1)*100, digits = 1)
+
+# Increase for Kitchen QualityFa
+a3 <- round((exp(-0.1429046757)-1)*100, digits = 1)
+
+# Increase for Kitchen QualityTA
+a4 <- round((exp(-0.1010095452)-1)*100, digits = 1)
+
+# Increase for Overall.Qual
+a5 <- round((exp(0.0800670733)-1)*100, digits = 1)
+
+data.frame(GrnHill=a1,
+           Greens=a2,
+           QualityFa=a3,
+           QualityTa=a4,
+           Qual=a5)
+
+```
 
 
 * * *
@@ -296,13 +322,43 @@ fit_init <- fit_init4
 Now either using `BAS` another stepwise selection procedure choose the "best" model you can, using your initial model as your starting point. Try at least two different model selection methods and compare their results. Do they both arrive at the same model or do they disagree? What do you think this means?
 
 * * *
-
-NOTE: Write your written response to section 2.2 here. Delete this note before you submit your work.
-
-Model selection: must include a discussion
+Using BAS with HPM and BPM, and stepAIC (k=log(n), for stepBIC), we obtained 3 models where the only difference to the initial model is that they had the two variables related to the **Land.Slope removed**. The **three models are the same** and have RMSE equals to 19737.34. This means that this final model is the best one under more than one perspective/approach and, therefore, one could be more confident to choose it.
 
 ```{r model_select}
+model.stepBIC <- stepAIC(fit_init, k = log(nrow(ames_train)), trace = FALSE)
+pred.train.stepBIC <- predict(model.stepBIC, newdata = ames_train)
+pred.stepBIC.rmse <- sqrt(mean((exp(pred.train.stepBIC) - ames_train$price)^2))
+pred.stepBIC.rmse
+names(model.stepBIC$coefficients)
+
+model.bas <- bas.lm(log(price) ~ area + log(Lot.Area) + Neighborhood_very_simplified + Overall.Qual + Overall.Cond + Land.Slope + Year.Built + Year.Remod.Add + Kitchen.Qual + Total.Bsmt.SF,
+                 data = ames_train, prior = "BIC", modelprior=uniform())
+
+pred.train.HPM <- predict(model.bas, newdata = ames_train, estimator="HPM")
+pred.HPM.rmse <- sqrt(mean((exp(pred.train.HPM$fit) - ames_train$price)^2))
+pred.HPM.rmse
+pred.train.HPM$best.vars
+
+pred.train.BPM <- predict(model.bas, newdata = ames_train, estimator="BPM")
+pred.BPM.rmse <- sqrt(mean((exp(pred.train.BPM$fit) - ames_train$price)^2))
+pred.BPM.rmse
+pred.train.BPM$best.vars
+
 ```
+
+```{r, warning=FALSE}
+pred.train.init <- predict(fit_init, newdata = ames_train)
+pred.init.rmse <- sqrt(mean((exp(pred.train.init) - ames_train$price)^2))
+pred.init.rmse
+
+
+fit_selection <- lm(log(price) ~ area + log(Lot.Area) + Neighborhood_very_simplified + 
+    Overall.Qual + Overall.Cond + Year.Built + Year.Remod.Add + 
+    Kitchen.Qual + Total.Bsmt.SF, data = ames_train)
+pred.train.selection <- predict(fit_selection, newdata = ames_train)
+pred.selection.rmse <- sqrt(mean((exp(pred.train.selection) - ames_train$price)^2))
+```
+
 
 * * *
 
@@ -311,10 +367,18 @@ One way to assess the performance of a model is to examine the model's residuals
 
 * * *
 
-NOTE: Write your written response to section 2.3 here. Delete this note before you submit your work.
+The residuals plots of the Initial Model (fit_init) and the selected model (fit_selection) are very similar. They do not look to follow any patter and look randomly spread around y=0 line. The residuals values are not too large, being mostly between -0.2 and 0.2, while there are only two observations very close to 0.4 (large residual). Most of observations have residuals close to zero,  and our models have good Adjusted R Squared of around 0.92, being our selected model the one with the highest Adjusted R2. When we plot the predicted values versus the truth values or prices, we see how residuals behave along the diagonal line and again that both models are very similar.
 
-Residual: must include a residual plot and a discussion
-```{r model_resid}
+```{r model_resid} 
+
+par(mfrow = c(2,2))
+plot(fit_init, which=1)
+plot(fit_selection, which=1)
+plot(ames_train$price, exp(predict(fit_init)))
+plot(ames_train$price, exp(predict(fit_selection)))
+
+data.frame(Model=c("Initial", "Selected"),
+           Adj.R.Squared= c(summary(fit_selection)$adj.r.squared, summary(fit_init)$adj.r.squared))
 ```
 
 * * *
@@ -324,15 +388,19 @@ Residual: must include a residual plot and a discussion
 You can calculate it directly based on the model output. Be specific about the units of your RMSE (depending on whether you transformed your response variable). The value you report will be more meaningful if it is in the original units (dollars).
 
 * * *
-
-NOTE: Write your written response to section 2.4 here. Delete this note before you submit your work.
-
-RMSE: must include an RMSE and an explanation
+We computed the RMSE before and here we compare both for initial and selected model:
 
 ```{r model_rmse}
+
+data.frame(Model=c("Initial", "Selected"), 
+           RMSE=c(pred.init.rmse, pred.BPM.rmse)
+           )
 ```
 
 * * *
+
+We can see that the RMSE is bigger in the Selected model than it was in the Initial model. On the other hand, the Adjusted R2 is bigger in the Selected model than it is in the initial model. Therefore, it is difficult do decide which model we should pick as our final model. Following a parsimonious approach, we would choose the model that removes the variables associated to the Lot.Slope.
+
 
 ### Section 2.5 Overfitting 
 
@@ -345,18 +413,26 @@ load("ames_test.Rdata")
 Use your model from above to generate predictions for the housing prices in the test data set.  Are the predictions significantly more accurate (compared to the actual sales prices) for the training data than the test data?  Why or why not? Briefly explain how you determined that (what steps or processes did you use)?
 
 * * *
-
-NOTE: Write your written response to section 2.5 here. Delete this note before you submit your work.
-
-Model testing: must include an explanation 
+By computing the RMSE with the test data, we can see that it does not differs much from the one computed using the trian data. Therefore, we can say that our model is performing well to predict the price of houses.
 
 
 ```{r initmodel_test}
+
+# Create variable Neighborhood_very_simplified
+ames_test$Neighborhood_very_simplified <- as.character(ames_test$Neighborhood)
+ames_test$Neighborhood_very_simplified[!(ames_test$Neighborhood %in% c("BrDale", "Crawfor", "Greens", "GrnHill"))] <- "LowImpact"
+ames_test$Neighborhood_very_simplified <- as.factor(ames_test$Neighborhood_very_simplified)
+
+
+pred.test.selection <- predict(fit_selection, newdata = ames_test)
+pred.selection.rmse.test <- sqrt(mean((exp(pred.test.selection) - ames_test$price)^2))
+
+data.frame(Train_RMSE=pred.selection.rmse, Test_RMSE=pred.selection.rmse.test)
+
 ```
 
 * * *
 
-**Note to the learner:** If in real-life practice this out-of-sample analysis shows evidence that the training data fits your model a lot better than the test data, it is probably a good idea to go back and revise the model (usually by simplifying the model) to reduce this overfitting. For simplicity, we do not ask you to do this on the assignment, however.
 
 ## Part 3 Development of a Final Model
 
@@ -368,15 +444,57 @@ Carefully document the process that you used to come up with your final model, s
 
 Provide the summary table for your model.
 
-
 * * *
 
-NOTE: Write your written response to section 3.1 here. Delete this note before you submit your work.
-
-Final model: must include a summary table
+We are going back and apply stepAIC (AIC and BIC) and BAS method to select our final Model, comparing the results with the initial models models selected in the previows section. We are going to create a summary for RMSE and, after picking our best option, we will plot out summary table for that model. We will **keep our transformations** done in previows analysis and consider only part of the variables, the ones we considered good options in previows analysis.
 
 ```{r model_playground}
+model_1 <- lm(log(price) ~ area + MS.Zoning + log(Lot.Area) + Bldg.Type + Neighborhood_very_simplified + Overall.Qual + Overall.Cond + Land.Slope + Condition.1 + Condition.2 + Year.Built + Year.Remod.Add + Roof.Matl + Total.Bsmt.SF + Heating + Central.Air + Bsmt.Full.Bath + Kitchen.Qual + Fireplaces + Open.Porch.SF + Screen.Porch, ames_train)
+summary(model_1)
+
+model.stepAIC <- stepAIC(model_1, k=2, trace = FALSE)
+model.stepBIC <- stepAIC(model_1, k=log(nrow(ames_train)), trace=FALSE)
+
+summary(model.stepBIC)
+
+pred.many.train.stepAIC <- predict(model.stepAIC, newdata = ames_train)
+pred.many.stepAIC.rmse <- sqrt(mean((exp(pred.many.train.stepAIC) - ames_train$price)^2))
+
+pred.many.train.stepBIC <- predict(model.stepBIC, newdata = ames_train)
+pred.many.stepBIC.rmse <- sqrt(mean((exp(pred.many.train.stepBIC) - ames_train$price)^2))
+
+pred.many.test.stepAIC <- predict(model.stepAIC, newdata = ames_test)
+pred.many.stepAIC.rmse.test <- sqrt(mean((exp(pred.many.test.stepAIC) - ames_test$price)^2))
+
+pred.many.test.stepBIC <- predict(model.stepBIC, newdata = ames_test)
+pred.many.stepBIC.rmse.test <- sqrt(mean((exp(pred.many.test.stepBIC) - ames_test$price)^2))
+
+data.frame(Model=c("Initially Selected", "stepAIC", "stepBIC"),
+            Adj_R2=c(summary(fit_selection)$adj.r.squared,summary(model.stepAIC)$adj.r.squared,summary(model.stepBIC)$adj.r.squared),
+            AIC=c(AIC(fit_selection), AIC(model.stepAIC), AIC(model.stepBIC)),
+            BIC=c(BIC(fit_selection), BIC(model.stepAIC), BIC(model.stepBIC)),
+            RMSE_train=c(pred.selection.rmse, pred.many.stepAIC.rmse, pred.many.stepBIC.rmse),
+            RMSE_test=c(pred.selection.rmse.test, pred.many.stepAIC.rmse.test, pred.many.stepBIC.rmse.test)
+ )
 ```
+
+The model selected by stepAIC is our best model. It has bigger Adjusted R2 than our selected initial model and smaller RMSE in both train and test cases. The only con of this model is that comparing the train and test RMSE, this is the one in which we see the biggest difference. Despite that, the values themselves are still smaller than the ones found by the Selected initial model and stepBIC model.
+
+The summary of our final model is:
+```{r}
+final_model <- model.stepAIC
+summary(final_model)
+```
+We can compare this model with our initial model, to see the differences in the residuals plots:
+```{r}
+par(mfrow = c(2,2))
+plot(final_model, which=1)
+plot(fit_selection, which=1)
+plot(ames_train$price, exp(predict(final_model)))
+plot(ames_train$price, exp(predict(fit_selection)))
+```
+
+The plots are very similar, with residuals randomly distributed along the y=0 line. When analysing the predicted vs. true value of price, we can see that for our final model the values are closer to the diagonal, which is consistent with the RMSE results (that are smaller in our final model than in our initial model).
 
 * * *
 
@@ -386,11 +504,10 @@ Did you decide to transform any variables?  Why or why not? Explain in a few sen
 
 * * *
 
-NOTE: Write your written response to section 3.2 here. Delete this note before you submit your work.
-
-Variable: must include an explanation
+Yes, we have **log-transformed** the **price** and **Lot.Area**. The **reasons why** were already described in the beggining of this report. In summary, we obtained **better Adjusted R Squared** when log-transforming these variables.
 
 ```{r model_assess}
+
 ```
 
 * * *
@@ -400,10 +517,7 @@ Variable: must include an explanation
 Did you decide to include any variable interactions? Why or why not? Explain in a few sentences.
 
 * * *
-
-NOTE: Write your written response to section 3.3 here. Delete this note before you submit your work.
-
-Variable interaction: must include an explanation
+We did not included variable interaction in the sense of, for instance, multiplying two factors. On the other hand, we have simplified one categorical variable (Neighborhood), in a way that, for the model, we transformed N binary variables into 1 binary variable named LowImpact. This "LowImpact" value is part of the new variable **Neighborhood_very_simplified** which was also explained before in this report. This simplification could be considered as interaction, since it is an operation of **OR** between the binary variables in the model (which are created considering the values of Neighborhood).
 
 ```{r model_inter}
 ```
@@ -416,9 +530,9 @@ What method did you use to select the variables you included? Why did you select
 
 * * *
 
-NOTE: Write your written response to section 3.4 here. Delete this note before you submit your work.
+In this report we have performed model selection in many ways, forming initial models with a few variables and a model with more variables. We have chosen the stepAIC and stepBIC to select the best model acording to AIC and BIC and compared their Adjusted R Squared and Residuals.
 
-Variable selection: must use appropriate method and include an explanation
+I have selected these methods because they remove the variables until you have no improvement in the model. That means that we will start with a big model and, therefore, a tendency to select more variables than in our Initial Model. In fact, that was excactly what happened.
 
 ```{r model_select}
 ```
@@ -430,10 +544,7 @@ Variable selection: must use appropriate method and include an explanation
 How did testing the model on out-of-sample data affect whether or how you changed your model? Explain in a few sentences.
 
 * * *
-
-NOTE: Write your written response to section 3.5 here. Delete this note before you submit your work.
-
-Residual: must include a residual plot and a discussion
+The out-of-sample data was used to assess if the errors found with the train data were too distant from the errors found with the new data. We did not find a big difference in the residual plots of training and testing observations in our models. The test set confirmed that our final model is performing well on the training and testing sets.
 
 ```{r model_testing}
 ```
@@ -448,7 +559,13 @@ For your final model, create and briefly interpret an informative plot of the re
 
 * * *
 
-NOTE: Write your written response to section 4.1 here. Delete this note before you submit your work.
+As shown and commented before, this is the Residuals vs Fitted plot. We can see that the residual values are not big and that they are spread around the y=0 line.
+
+```{r}
+plot(final_model, which=1)
+```
+
+
 
 * * *
 
@@ -458,9 +575,13 @@ For your final model, calculate and briefly comment on the RMSE.
 
 * * *
 
-NOTE: Write your written response to section 4.2 here. Delete this note before you submit your work.
+As computed and shown before, the RMSE of the final model is the smaller one that we compared.
+The small RMSE can be explained by the small differences between the true price and the predicted price, as ploted bellow:
+```{r}
+plot(ames_train$price, exp(predict(final_model)))
+```
 
-RMSE: must include an RMSE and an explanation
+
 
 * * *
 
@@ -468,9 +589,10 @@ RMSE: must include an RMSE and an explanation
 
 What are some strengths and weaknesses of your model?
 
-* * *
 
-NOTE: Write your written response to section 4.3 here. Delete this note before you submit your work.
+
+* * *
+We can say that some **strenghts** are that our factors are statistically significant to predict price, that our model has a good adjusted R2 and small residuals, as explained above. This means that we are likelly to be able to predict the price of houses and say if the current sale price is bellow the expected price. Among the **weaknesses** we could say that our model perform the worse the bigger is the price. Since we could have bigger profit selling the most expensives houses. So, our model can limit our coverage to low to medium priced houses. Our model also may give us the wrong expected price for the highest priced houses and even puts us in the opposite situation of having profit. Therefore, our model could be more appropriate for houses that are not so expensive, or, if it is the case of an expensive house, its current selling price should be much bellow the expected price, so that we would reduce the risks of a loss.
 
 * * *
 
@@ -481,7 +603,7 @@ Testing your final model on a separate, validation data set is a great way to de
 You will use the “ames_validation” dataset to do some additional assessment of your final model. Discuss your findings, be sure to mention:
 * What is the RMSE of your final model when applied to the validation data?  
 * How does this value compare to that of the training data and/or testing data?
-* What percentage of the 95% predictive confidence (or credible) intervals contain the true price of the house in the validation data set?  
+* What percentage of the 95% predictive confidence (or credible) intervals contain the true price of the house in the validation data set?
 * From this result, does your final model properly reflect uncertainty?
 
 ```{r loadvalidation, message = FALSE}
@@ -490,13 +612,47 @@ load("ames_validation.Rdata")
 
 * * *
 
-NOTE: Write your written response to section 4.4 here. Delete this note before you submit your work.
+We first create our Neighborhood_very_simplified variable and remove observations with new factor levels. These were found in variables MS_Zoning (1 observation) and Heating (1 observation), dropping from 763 to 761 observations in the validation set. We also dropped one more observation (#490), because it has value NA for variable Bsmt.Full.Bath.
 
-Model evaluation: must include an evaluation discussion
-Model validation: must include a discussion
-Model result: must include undervalued and overvalued houses
 ```{r model_validate}
+
+ames_validation$Neighborhood_very_simplified <- as.character(ames_validation$Neighborhood)
+ames_validation$Neighborhood_very_simplified[!(ames_validation$Neighborhood %in% c("BrDale", "Crawfor", "Greens", "GrnHill"))] <- "LowImpact"
+ames_validation$Neighborhood_very_simplified <- as.factor(ames_validation$Neighborhood_very_simplified)
+levels(ames_validation$MS.Zoning)
+
+nrow(ames_validation)
+ames_validation <- ames_validation[ames_validation$MS.Zoning!="A (agr)",]
+nrow(ames_validation)
+ames_validation <- ames_validation[ames_validation$Heating!="Floor",]
+nrow(ames_validation)
+ames_validation <- ames_validation[-490,]
+
+summary(ames_validation$price)
+pred.final.val <- predict(final_model, newdata = ames_validation)
+pred.final.rmse.val <- sqrt(mean((exp(pred.final.val) - ames_validation$price)^2))
+data.frame(Model=c("Final Model"),
+            RMSE_train=c(pred.selection.rmse),
+            RMSE_test=c(pred.selection.rmse.test),
+            RMSE_validation=c(pred.final.rmse.val)
+ )
+
+# Get dataset of predictions and confidence intervals
+pred <- predict(final_model, ames_validation, interval="confidence", se.fit=TRUE, level = 0.95)
+pred <- data.frame(pred)
+
+pred$price <- ames_validation$price
+pred$fit.lwr <- exp(pred$fit.lwr)
+pred$fit.upr <- exp(pred$fit.upr)
+# Get Coverage
+pred.val <- pred %>% summarize(cover = sum(price >= fit.lwr & price <= fit.upr)/n())
+pred.val
+
 ```
+
+Our final model obtained a better value for the **RMSE** in the valitation set than in the test set. Both test and validation sets seems to have a RMSE around the one obtained using the train set, which is consistent with what we could expect from a good model.
+
+On the other hand, only **30.5%** of the 95% **predictive confidence intervals** contained the true price of the validation observations. Therefore, our model **is not reflecting uncertainty**.
 
 * * *
 
