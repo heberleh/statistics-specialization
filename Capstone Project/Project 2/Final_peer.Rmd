@@ -112,7 +112,7 @@ vis_miss(ames_train, sort_miss = TRUE) + theme(axis.text.x = element_text(angle 
 ```
 
 
-In Figure 2 (A), we can see that half of our data is categorical and half is numerical. In Figure 2 (B), we can see that there are 3 to 5 variables with a large number of missing values. **We chose to discart the variables Pool.QC, Alley and Fence  because they have more than 50% of missing values each**. Also, the fact that a house has pool or not is already described by the Pool.Area.
+In Figure 2 (A), we can see that a half of our data is categorical and half is numerical. In Figure 2 (B), we can see that there are 3 to 5 variables with numerous missing values. **We chose to discard the variables Pool.QC, Alley and Fence  because they have more than 50% of missing values each**. Also, the fact that a house has a pool or not is already described by the Pool.Area.
 ```{r}
 # Removing variables that has more than 50% of NAs
 lowNAs <- lapply( ames_train, function(x) sum(is.na(x)) / length(x) ) < 0.5
@@ -125,7 +125,7 @@ The variable **Fireplace.Qu** was also removed, due to large number of NAs and b
 ames_train <- dplyr::select(ames_train, -Fireplace.Qu)
 ```
 
-The variable **Lot.Frontage** also contains many NAs. This variable relates to the **Linear feet of street connected to property** and the minimun value is 21. Therefore, we will set all NAs to 0, supposing they filled with NAs when there was no connection between the street connected to property.  
+The variable **Lot.Frontage** also contains many NAs. This variable relates to the **Linear feet of street connected to property** and the minimum value is 21. Therefore, we will set all NAs to 0, supposing they filled with NAs when there was no connection between the street connected to property.  
 
 ```{r}
 # Setting Lot.Frontage NAs to Zero
@@ -135,7 +135,7 @@ ames_train$Lot.Frontage <- as.integer(ames_train$Lot.Frontage)
 summary(ames_train$Lot.Frontage)
 ```
 
-Some of the variables related to Garage and Basement (variables that start with the words Garage and Bsmt) were also removed. We kept their versions without NAs. For instance, **we kept Garage.Cars and Garage.Area**. Similar for Basement.
+Some variables related to Garage and Basement (variables that start with the words Garage and Bsmt) were also removed. We kept their versions without NAs. For instance, **we kept Garage.Cars and Garage.Area**. Similar for Basement.
 
 ```{r}
 ames_train <- dplyr::select(ames_train, -Garage.Qual, -Garage.Cond, -Garage.Type, -Garage.Yr.Blt, -Garage.Finish, -Bsmt.Cond, -Bsmt.Qual, -Bsmt.Exposure, -BsmtFin.Type.1, -BsmtFin.Type.2, -BsmtFin.SF.2)
@@ -158,13 +158,13 @@ Figure 2 (C) shows our final train data set. In total, we have reduced our data 
 
 Here we want to analyse the relationship between variables/factors.
 
-First, we found out that the variable Utilities contains only one value in all observations; then, we found out that the variable Low.Qual.Fin.SF has abdormal distribution; hence, we removed these variables. By running a Linear Regression with all variables, we found out that many variables resulted in extremely large p-values. We removed these variables too.
+First, we found out that the variable Utilities contains only one value in all observations; then, we found out that the variable Low.Qual.Fin.SF has an abdormal distribution; hence, we removed these variables. By running a Linear Regression with all variables, we found out that many variables resulted in extremely large p-values. We removed these variables too.
 
 ```{r graph3}
 ames_train <- dplyr::select(ames_train, -Utilities, -Low.Qual.Fin.SF, -Lot.Shape, -Land.Contour, -Lot.Config, -House.Style, -Roof.Style, -Mas.Vnr.Type, -Electrical, -Full.Bath, -Half.Bath, -Bedroom.AbvGr, -TotRms.AbvGrd, -Paved.Drive)
 ```
 
-We compared many variables to see the relationship between them. Here we show some of the relationships among numerical variables that we considered important and that had small p-values in the full linear model created in the step before. 
+We compared many variables to see the relationship between them. Here we show some relationships among numerical variables that we considered important and that had small p-values in the full linear model created in the step before. 
 
 ```{r}
 #ggpairs(dplyr::select_if(ames_train, is.numeric))
@@ -199,7 +199,7 @@ Based on your EDA, select *at most* 10 predictor variables from “ames_train”
 
 * * *
 
-To continue with our analysis, we analysed the relationship of variables with Price to check if they look linear. We tested them by log-transforming both the dependent and independent variables, only the dependent and only the independent. In fact, by log-transforming Price, we ended up in general with better plots, that looked more linear and resulted in higher correlation. Therefore, we will use log(price) in our initial model.
+To continue with our analysis, we analysed the relationship of variables with Price to check if they look linear. We tested them by log-transforming both the dependent and independent variables, only the dependent and only the independent. In fact, by log-transforming Price, we ended up in general with better plots, that looked more linear and resulted in a higher correlation. Therefore, we will use log(price) in our initial model.
 ```{r}
 ggplot(data = ames_train, aes(x=price, y=Overall.Qual))  + geom_point() + stat_smooth(method = "lm", col = "red") + ggtitle("Price x Overall.Qual")
 ggplot(data = ames_train, aes(x=log(price), y=Overall.Qual))  + geom_point() + stat_smooth(method = "lm", col = "red") + ggtitle("Log(Price) x Overall.Qual")
@@ -208,7 +208,7 @@ cor(ames_train$price, ames_train$Overall.Qual)
 cor(log(ames_train$price), ames_train$Overall.Qual)
 ```
 
-We chose the initial dependent variables based on facts like *not having a large p-value* in the full model (all variables included) tested before, on **having high correlation** with the dependent variable or based on our experience when trying to find a house to rent.
+We chose the initial dependent variables based on facts like *not having a large p-value* in the full model (all variables included) tested before, on **having high a correlation** with the dependent variable or based on our experience when trying to find a house to rent.
 
 In general, variables linked to Size, Place, Quality and Age are very intuitive when trying to define the price of a house. Therefore, we included:
  1. area (Size)
@@ -224,7 +224,7 @@ In general, variables linked to Size, Place, Quality and Age are very intuitive 
  
  As we saw in the EDA, **the price is highly correlated to variables that indicate Area and Quality** as well. We also saw that the **price varies among neighborhoods**. The **age variables are clearly related to the price, once new houses are more expensive than old ones**.
  
-We created the Initial Model with the 10 variables and analysed the significance of each factor. We concluded that **many neighborhoods do not have significant impact in the price** and **somehow caused MULTICOLINEARITY in the model, suggesting to remove the variable Year.Built**. This analysis was performed using the **generalized variance inflation** used to check for multicolinearity.
+We created the Initial Model with the 10 variables and analysed the significance of each factor. We concluded that **many neighborhoods do not have a significant impact in the price** and **somehow caused MULTI-COLINEARITY in the model, suggesting to remove the variable Year.Built**. This analysis was performed using the **generalized variance inflation** used to check for multi-colinearity.
 ```{r fit_model}
 #fit <- lm(log(price) ~ area + MS.Zoning + Lot.Area + Bldg.Type + Neighborhood + Overall.Qual + Overall.Cond + Land.Slope + Condition.1 + Condition.2 + Year.Built + Year.Remod.Add + Roof.Matl + Total.Bsmt.SF + Heating + Central.Air + Bsmt.Full.Bath + Kitchen.Qual + Fireplaces + Open.Porch.SF + Screen.Porch, ames_train)
 ames_train$Neighborhood_simplified <- as.character(ames_train$Neighborhood)
@@ -244,9 +244,9 @@ fit_init3 <- lm(log(price) ~ area + log(Lot.Area) + Neighborhood_very_simplified
 data.frame(AllNeighbors=summary(fit_init1)$adj.r.squared, Simplified=summary(fit_init2)$adj.r.squared, VerySimplified=summary(fit_init3)$adj.r.squared)
 
 ```
-With the **table above**, we can see that using all Neighbors or using other two versions of simplification resulted in very similar **Adjusted R Squared**. The simplification was created by removing non-significant Neighborhoods from the models. With this procedure, we end up with a model much more parsimoneous and with less non-significant factors. In future Model Selection, we may test both approaches: simplifying and not simplifying the variable Neighborhood.
+With the **table above**, we can see that using all Neighbors or using other two versions of simplification resulted in very similar **Adjusted R Squared**. The simplification was created by removing non-significant Neighborhoods from the models. With this procedure, we end up with a model much more parsimonious and with less non-significant factors. In future Model Selection, we may test both approaches: simplifying and not simplifying the variable Neighborhood.
 
-In the table bellow we can see that in model fit_init1 the **GVIF^(1/(2*Df))** is > 2.56, suggesting that Year.Built should be removed from the model (GVIF^(1/(2*Df)) > 2 is a common threshold).
+In the table below we can see that in model fit_init1 the **GVIF^(1/(2*Df))** is > 2.56, suggesting that Year.Built should be removed from the model (GVIF^(1/(2*Df)) > 2 is a common threshold).
 On the other hand, for model fit_init3 (very simplified), all the **GVIF^(1/(2*Df))** values are < 1.62.
 ```{r, message=FALSE}
 library(car)
@@ -257,14 +257,14 @@ car::vif(fit_init3)
 Since Year.Built is an attribute that we consider of great importance to define the price of a house, we will continue with the model **fit_init3** as our **Initial Model**.
 
 
-With the following plots, we checked the **linearity** by checking that the values in the Residuals vs Fitted plot are not very large and the **homoscedasticity** by checking that the residuals are equally spread around the y=0 line and that we barely see a patern in the plot Scale-Location. The **normality** also holds once the Normal Q-Q plot is close to a 45º line.
+With the following plots, we checked the **linearity** by checking that the values in the Residuals vs Fitted plot are not very large and the **homoscedasticity** by checking that the residuals are equally spread around the y=0 line and that we barely see a pattern in the plot Scale-Location. The **normality** also holds once the Normal Q-Q plot is close to a 45º line.
 ```{r, message=FALSE, warning=FALSE}
 fit_init <- fit_init3
 par(mfrow = c(2, 2))
 plot(fit_init, which=1:4)
 ```
 
-The Cook's distance plot revealed that **observations number 209, 610 and 756 should be investigated** since they are much larger than the others. We removed the observation 610 from the train set and created a new model fit_init4 to be our final model fit_init. The reason is justified by the fact that in all plots it is coming out as a strange point, confirming the hyphotesis of the Cook's distance plot. The result was a **much better Normal Q-Q plot**, more close to 45º. **The adjusted R Squared also had a small improvement**.
+The Cook's distance plot revealed that **observations number 209, 610 and 756 should be investigated** since they are much larger than the others. We removed the observation 610 from the train set and created a new model fit_init4 to be our final model fit_init. The reason is justified by the fact that in all plots it is coming out as a strange point, confirming the hypothesis of the Cook's distance plot. The result was a **much better Normal Q-Q plot**, more close to 45º. **The adjusted R Squared also had a small improvement**.
 
 ```{r, message=FALSE, warning=FALSE}
 ames_train <- ames_train[-c(610),] #, 422, 62, 209, 756
@@ -287,7 +287,7 @@ fit_init <- fit_init4
 summary(fit_init)
 ```
 
-By the variables' coeficients from the model and p-values, we can see that two factors that influentiate a lot are the ones that tell us if the houses are in the GrnHill and in the Greens neighborhoods; followed by Kitchen quality (FA and TA) and Overall Quality; all of them with a small p-value (p < 0.01).
+By the variables' coefficients from the model and p-values, we can see that two factors that influence a lot are the ones that tell us if the houses are in the GrnHill and in the Greens neighborhoods; followed by Kitchen quality (FA and TA) and Overall Quality; all of them with a small p-value (p < 0.01).
 
 Bellow is the table indicating the % the price is increased/decreased on average when the house is in one of those two neighborhoods, has Ta or Fa as Kitchen Quality, and the percentage the price increases by unit of Overall Quality (when the respective variable is varying and the others are hold constant).
 ```{r}
@@ -404,7 +404,7 @@ We can see that the RMSE is bigger in the Selected model than it was in the Init
 
 ### Section 2.5 Overfitting 
 
-The process of building a model generally involves starting with an initial model (as you have done above), identifying its shortcomings, and adapting the model accordingly. This process may be repeated several times until the model fits the data reasonably well. However, the model may do well on training data but perform poorly out-of-sample (meaning, on a dataset other than the original training data) because the model is overly-tuned to specifically fit the training data. This is called “overfitting.” To determine whether overfitting is occurring on a model, compare the performance of a model on both in-sample and out-of-sample data sets. To look at performance of your initial model on out-of-sample data, you will use the data set `ames_test`.
+The process of building a model generally involves starting with an initial model (as you have done above), identifying its shortcomings, and adapting the model accordingly. This process may be repeated several times until the model fits the data reasonably well. However, the model may do well on training data but perform poorly out-of-sample (meaning, on a dataset other than the original training data) because the model is overly-tuned to specifically fit the training data. This is called “overfitting.” To determine whether overfitting is occurring on a model, compare the performance of a model on both in-sample and out-of-sample data sets. To look at the performance of your initial model on out-of-sample data, you will use the data set `ames_test`.
 
 ```{r loadtest, message = FALSE}
 load("ames_test.Rdata")
@@ -413,7 +413,7 @@ load("ames_test.Rdata")
 Use your model from above to generate predictions for the housing prices in the test data set.  Are the predictions significantly more accurate (compared to the actual sales prices) for the training data than the test data?  Why or why not? Briefly explain how you determined that (what steps or processes did you use)?
 
 * * *
-By computing the RMSE with the test data, we can see that it does not differs much from the one computed using the trian data. Therefore, we can say that our model is performing well to predict the price of houses.
+By computing the RMSE with the test data, we can see that it does not differ much from the one computed using the train data. Therefore, we can say that our model is performing well to predict the price of houses.
 
 
 ```{r initmodel_test}
@@ -446,16 +446,13 @@ Provide the summary table for your model.
 
 * * *
 
-We are going back and apply stepAIC (AIC and BIC) and BAS method to select our final Model, comparing the results with the initial models models selected in the previows section. We are going to create a summary for RMSE and, after picking our best option, we will plot out summary table for that model. We will **keep our transformations** done in previows analysis and consider only part of the variables, the ones we considered good options in previows analysis.
+We are going back and apply stepAIC (AIC and BIC) and BAS method to select our final Model, comparing the results with the initial models selected in the previows section. We are going to create a summary for RMSE and, after picking our best option, we will plot our summary table for that model. We will **keep our transformations** done in previous analysis and consider only part of the variables, the ones we considered good options in previous analysis.
 
 ```{r model_playground}
 model_1 <- lm(log(price) ~ area + MS.Zoning + log(Lot.Area) + Bldg.Type + Neighborhood_very_simplified + Overall.Qual + Overall.Cond + Land.Slope + Condition.1 + Condition.2 + Year.Built + Year.Remod.Add + Roof.Matl + Total.Bsmt.SF + Heating + Central.Air + Bsmt.Full.Bath + Kitchen.Qual + Fireplaces + Open.Porch.SF + Screen.Porch, ames_train)
-summary(model_1)
 
 model.stepAIC <- stepAIC(model_1, k=2, trace = FALSE)
 model.stepBIC <- stepAIC(model_1, k=log(nrow(ames_train)), trace=FALSE)
-
-summary(model.stepBIC)
 
 pred.many.train.stepAIC <- predict(model.stepAIC, newdata = ames_train)
 pred.many.stepAIC.rmse <- sqrt(mean((exp(pred.many.train.stepAIC) - ames_train$price)^2))
@@ -478,9 +475,9 @@ data.frame(Model=c("Initially Selected", "stepAIC", "stepBIC"),
  )
 ```
 
-The model selected by stepAIC is our best model. It has bigger Adjusted R2 than our selected initial model and smaller RMSE in both train and test cases. The only con of this model is that comparing the train and test RMSE, this is the one in which we see the biggest difference. Despite that, the values themselves are still smaller than the ones found by the Selected initial model and stepBIC model.
+The model selected by stepAIC is our **best model**. It has bigger Adjusted R2 than our selected initial model and smaller RMSE in both train and test cases. The only con of this model is that comparing the train and test RMSE, this is the one in which we see the biggest difference. Despite that, the values themselves are still smaller than the ones found by the Selected initial model and stepBIC model.
 
-The summary of our final model is:
+The summary of our **final model** is:
 ```{r}
 final_model <- model.stepAIC
 summary(final_model)
@@ -494,7 +491,7 @@ plot(ames_train$price, exp(predict(final_model)))
 plot(ames_train$price, exp(predict(fit_selection)))
 ```
 
-The plots are very similar, with residuals randomly distributed along the y=0 line. When analysing the predicted vs. true value of price, we can see that for our final model the values are closer to the diagonal, which is consistent with the RMSE results (that are smaller in our final model than in our initial model).
+The plots are very similar, with residuals randomly distributed along the y=0 line. When analysing the predicted vs. true value of price, we can see that for our final model the values are closer to the diagonal which is consistent with the RMSE results (that are smaller in our final model than in our initial model).
 
 * * *
 
@@ -504,7 +501,7 @@ Did you decide to transform any variables?  Why or why not? Explain in a few sen
 
 * * *
 
-Yes, we have **log-transformed** the **price** and **Lot.Area**. The **reasons why** were already described in the beggining of this report. In summary, we obtained **better Adjusted R Squared** when log-transforming these variables.
+Yes, we have **log-transformed** the **price** and **Lot.Area**. The **reasons why** were already described in the beginning of this report. In summary, we obtained **better Adjusted R Squared** when log-transforming these variables.
 
 ```{r model_assess}
 
@@ -517,7 +514,7 @@ Yes, we have **log-transformed** the **price** and **Lot.Area**. The **reasons w
 Did you decide to include any variable interactions? Why or why not? Explain in a few sentences.
 
 * * *
-We did not included variable interaction in the sense of, for instance, multiplying two factors. On the other hand, we have simplified one categorical variable (Neighborhood), in a way that, for the model, we transformed N binary variables into 1 binary variable named LowImpact. This "LowImpact" value is part of the new variable **Neighborhood_very_simplified** which was also explained before in this report. This simplification could be considered as interaction, since it is an operation of **OR** between the binary variables in the model (which are created considering the values of Neighborhood).
+We did not include variable interaction in the sense of, for instance, multiplying two factors. On the other hand, we have simplified one categorical variable (Neighborhood), in a way that, for the model, we transformed N binary variables into 1 binary variable named LowImpact. This "LowImpact" value is part of the new variable **Neighborhood_very_simplified** which was also explained before in this report. This simplification could be considered as an interaction, since it is an operation of **OR** between the binary variables in the model (which are created considering the values of Neighborhood).
 
 ```{r model_inter}
 ```
@@ -526,13 +523,13 @@ We did not included variable interaction in the sense of, for instance, multiply
 
 ### Section 3.4 Variable Selection
 
-What method did you use to select the variables you included? Why did you select the method you used? Explain in a few sentences.
+What method did you use to select the variables you have included? Why did you select the method you used? Explain in a few sentences.
 
 * * *
 
-In this report we have performed model selection in many ways, forming initial models with a few variables and a model with more variables. We have chosen the stepAIC and stepBIC to select the best model acording to AIC and BIC and compared their Adjusted R Squared and Residuals.
+In this report we have performed model selection in many ways, forming initial models with a few variables and a model with more variables. We have chosen the stepAIC and stepBIC to select the best model according to AIC and BIC and compared their Adjusted R Squared and Residuals.
 
-I have selected these methods because they remove the variables until you have no improvement in the model. That means that we will start with a big model and, therefore, a tendency to select more variables than in our Initial Model. In fact, that was excactly what happened.
+I have selected these methods because they remove the variables until you have no improvement in the model. That means that we will start with a big model and, therefore, a tendency to select more variables than in our Initial Model. In fact, that was exactly what happened.
 
 ```{r model_select}
 ```
@@ -576,7 +573,7 @@ For your final model, calculate and briefly comment on the RMSE.
 * * *
 
 As computed and shown before, the RMSE of the final model is the smaller one that we compared.
-The small RMSE can be explained by the small differences between the true price and the predicted price, as ploted bellow:
+The small RMSE can be explained by the small differences between the true price and the predicted price, as plotted bellow:
 ```{r}
 plot(ames_train$price, exp(predict(final_model)))
 ```
@@ -592,7 +589,7 @@ What are some strengths and weaknesses of your model?
 
 
 * * *
-We can say that some **strenghts** are that our factors are statistically significant to predict price, that our model has a good adjusted R2 and small residuals, as explained above. This means that we are likelly to be able to predict the price of houses and say if the current sale price is bellow the expected price. Among the **weaknesses** we could say that our model perform the worse the bigger is the price. Since we could have bigger profit selling the most expensives houses. So, our model can limit our coverage to low to medium priced houses. Our model also may give us the wrong expected price for the highest priced houses and even puts us in the opposite situation of having profit. Therefore, our model could be more appropriate for houses that are not so expensive, or, if it is the case of an expensive house, its current selling price should be much bellow the expected price, so that we would reduce the risks of a loss.
+We can say that some **strengths** are that our factors are statistically significant to predict price, that our model has a good adjusted R2 and small residuals, as explained above. This means that we are likely to be able to predict the price of houses and say if the current sale price is bellow the expected price. Among the **weaknesses** we could say that our model perform the worse the bigger is the price. Since we could have a bigger profit selling the most expensive houses. So, our model can limit our coverage to low to medium priced houses. Our model also may give us the wrong expected price for the highest priced houses and even puts us in the opposite situation of having profit. Therefore, our model could be more appropriate for houses that are not so expensive, or, if it is the case of an expensive house, its current selling price should be much below the expected price, so that we would reduce the risks of a loss.
 
 * * *
 
@@ -650,9 +647,9 @@ pred.val
 
 ```
 
-Our final model obtained a better value for the **RMSE** in the valitation set than in the test set. Both test and validation sets seems to have a RMSE around the one obtained using the train set, which is consistent with what we could expect from a good model.
+Our final model obtained a better value for the **RMSE** in the validation set than in the test set. Both test and validation sets seems to have an RMSE around the one obtained using the train set, which is consistent with what we could expect from a good model.
 
-On the other hand, only **30.5%** of the 95% **predictive confidence intervals** contained the true price of the validation observations. Therefore, our model **is not reflecting uncertainty**.
+On the other hand, only **30.5%** of the 95% **predictive confidence intervals** contained the true price of the validation observations. Therefore, our model **is not reflecting uncertainty** and should not be trusted so much.
 
 * * *
 
@@ -662,8 +659,13 @@ Provide a brief summary of your results, and a brief discussion of what you have
 
 * * *
 
-NOTE: Write your written response to part 5 here. Delete this note before you submit your work.
+In this project, we have explored the data and found bad features that needed to be changed to better fit our linear models. Examples are the removal of variables with a large number of **missing values**  and the removal of observations that are **influential outliers**. A **future work** would be assess how the results of test and validation sets would behave if we did not remove outliers to train our models, and what would be the final model if we did not simplify the variable Neighborhood.
 
-Conclusion (10 points): must include a summary of results and a discussion of things learned
+By using model selection heuristics, we have found good models that can predict the price of houses with a not bad precision. We found a **great Adjusted R Squared** value and a considerable **good RMSE** score. On the other hand, we learned that these values need to be analysed together with the **residuals** and **predicted x true price** plots. Together, we saw that the **great R Squared values happened only due to great prediction for houses with low price**. By analysing the predicted x true price, we were able to see that our model does not perform so well to predict the more expensive houses. This is a big **limitation** in our model that would need to be addressed and, perhaps, a new survey should be proposed to understand what are the attributes for expensive houses that could mostly explain their prices.
+
+In the end, we learned that great values for R Squared (which were computed with the train set) has nothing to do with the predictive confidence intervals. We checked that only 30.5% of the 95% predictive confidence intervals contained the true price, which gives us an insight about how much we should trust in our model. **Even when the train set is used to compute the predictive confidence intervals, the percentage is as low as 30%**; far from the ideal expected 95%. Ideally, we should try to make better predictions selecting a different model. If we cannot find a better model, we should keep in mind that the system may indeed help in the decision process but we should give more credits to the responsable specialist's opinion.
+
+Selecting a good model is a process that requires one to check many possibilities of combinations of variables and transformations. While here we have done a good part of the process manually, the automation of a good part of the process should be considered. For instance, a table with possible combination of log-transformation indicating the best combinations could be computed as an initial step.
+
 
 * * *
